@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+/.idea
+/.vscode
+frontend/node_modules/
+backend/node_modules/
