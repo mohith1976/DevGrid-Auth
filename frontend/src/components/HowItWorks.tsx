@@ -2,7 +2,7 @@ import React from 'react';
 
 const steps = [
   { title: 'Connect GitHub', desc: 'Authorize DevGrid to read your public repos and basic profile information.' },
-  { title: 'Verify Projects', desc: 'We scan commits, tags and repo metadata to verify project ownership.' },
+  { title: 'Verify Projects', desc: 'We scan contributions, tags and repo metadata to verify project ownership.' },
   { title: 'Upload Proofs', desc: 'Add certificates or achievement screenshots — we OCR and validate them.' },
   { title: 'Publish Portfolio', desc: 'A living portfolio page is generated and kept up to date automatically.' },
 ];

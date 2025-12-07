@@ -65,6 +65,7 @@ export default function ProposalsList() {
                 <div style={{ fontWeight: 800 }}>{p.title}</div>
                 <div className="small muted">{p.description}</div>
                 <div className="small muted">Team size: {p.teamSize} • Reward: {p.rewardPoints} pts • Status: {p.status}</div>
+                <div className="small muted">Min contributions: {(p.requirements?.minContributions ?? p.requirements?.minCommits) || 0}</div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn" onClick={() => setSelected(p._id || p.id)}>View</button>
@@ -75,7 +76,7 @@ export default function ProposalsList() {
       </ul>
       {selected && (
         <div style={{ marginTop: 12 }}>
-          <ProposalDetail id={selected} />
+          <ProposalDetail id={selected} showOwnerControls={false} />
           <div style={{ marginTop:8 }}><button className="btn ghost" onClick={()=>setSelected(null)}>Close</button></div>
         </div>
       )}

@@ -171,12 +171,12 @@ export default function DeveloperStats(){
         </div>
 
         <div className="card">
-          <h4>Commits This Year</h4>
+          <h4>Contributions This Year</h4>
           <div style={{padding:8,background:'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))',borderRadius:8}}>
             <LineChart months={commitsByMonth.map((m:any)=>({ label: m.label, count: m.count }))} />
           </div>
           <div style={{display:'flex',justifyContent:'space-between',marginTop:8}}>
-            <div className="small muted">Monthly commits</div>
+            <div className="small muted">Monthly contributions</div>
             <div className="small muted">Total: {commitsByMonth.reduce((s:any,m:any)=>s + (m.count||0), 0)}</div>
           </div>
           <div style={{marginTop:12}}>

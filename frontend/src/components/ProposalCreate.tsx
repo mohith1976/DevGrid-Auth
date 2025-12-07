@@ -9,7 +9,7 @@ export default function ProposalCreate() {
   // reward is fixed by policy: 100 points awarded on successful completion
   const FIXED_REWARD = 100;
   const [minRepoCount, setMinRepoCount] = useState(0);
-  const [minCommits, setMinCommits] = useState(0);
+  const [minContributions, setMinContributions] = useState(0);
   const [minLevel, setMinLevel] = useState(0);
   const [languages, setLanguages] = useState('');
   const [tags, setTags] = useState('');
@@ -49,7 +49,8 @@ export default function ProposalCreate() {
         repoUrl,
         teamSize,
         rewardPoints: FIXED_REWARD,
-        requirements: { minRepoCount, minCommits, minLevel, languages: languages.split(',').map(s => s.trim()).filter(Boolean) },
+        // use minContributions as the requirement field name
+        requirements: { minRepoCount, minContributions, minLevel, languages: languages.split(',').map(s => s.trim()).filter(Boolean) },
         tags: tags.split(',').map(s => s.trim()).filter(Boolean)
       };
       const res = await axios.post('http://localhost:3000/api/proposals/create', payload, { headers: { Authorization: `Bearer ${token}` } });
@@ -123,8 +124,8 @@ export default function ProposalCreate() {
               <input style={styles.input} type="number" value={minRepoCount} onChange={(e) => setMinRepoCount(Number(e.target.value))} min={0} />
             </div>
             <div style={{ flex: 1 }}>
-              <label style={styles.label}>Min commits</label>
-              <input style={styles.input} type="number" value={minCommits} onChange={(e) => setMinCommits(Number(e.target.value))} min={0} />
+              <label style={styles.label}>Min contributions</label>
+              <input style={styles.input} type="number" value={minContributions} onChange={(e) => setMinContributions(Number(e.target.value))} min={0} />
             </div>
             <div style={{ width: 160 }}>
               <label style={styles.label}>Profile level</label>

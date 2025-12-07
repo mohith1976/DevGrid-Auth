@@ -98,6 +98,9 @@ header{display:flex;align-items:center;justify-content:space-between;padding:28p
 /* Card hover lift */
 .feature:hover, .test-card:hover, .card:hover{transform:translateY(-6px);transition:transform .25s cubic-bezier(.2,.9,.2,1)}
 
+/* disable hover-lift for container cards that host interactive lists (prevents flicker) */
+.card.no-hover:hover{transform:none}
+
 /* Improve mobile layout */
 @media (max-width:640px){
 	.hero-left h1{font-size:26px}

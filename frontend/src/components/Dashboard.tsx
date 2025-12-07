@@ -7,6 +7,8 @@ import DeveloperStats from './DeveloperStats';
 import LanguageSnapshot from './LanguageSnapshot';
 import ProposalsList from './ProposalsList';
 import ProposalCreate from './ProposalCreate';
+import DashboardOwnerApplications from './DashboardOwnerApplications';
+import DashboardMyApplications from './DashboardMyApplications';
 
 type User = {
   id: string;
@@ -38,7 +40,7 @@ export default function Dashboard({ user }: { user: User }){
   const [toast, setToast] = useState<{msg:string,type?:'info'|'success'|'error'} | null>(null);
   const [confirmModal, setConfirmModal] = useState<{open:boolean, repo?:any} | null>(null);
 
-  const [active, setActive] = React.useState<'Projects'|'Profile'|'Achievements'|'Stats'|'Settings'>('Projects');
+  const [active, setActive] = React.useState<'Projects'|'Profile'|'Achievements'|'Stats'|'Settings'|'Teams'|'OwnerApps'|'MyApps'>('Projects');
   // local, in-dashboard proposal view: null = none, 'list' = browse, 'create' = create form
   const [proposalView, setProposalView] = React.useState<null|'list'|'create'>(null);
 
@@ -137,6 +139,9 @@ export default function Dashboard({ user }: { user: User }){
           <a className={`nav-item ${active==='Profile' ? 'active':''}`} onClick={() => setActive('Profile')}><div style={{width:18}}/> Profile</a>
           <a className={`nav-item ${active==='Projects' ? 'active':''}`} onClick={() => setActive('Projects')}><IconRepo /> Projects</a>
           <a className={`nav-item ${active==='Achievements' ? 'active':''}`} onClick={() => setActive('Achievements')}><IconStar /> Achievements</a>
+            <a className={`nav-item ${active==='OwnerApps' ? 'active':''}`} onClick={() => setActive('OwnerApps')}>Manage Proposals</a>
+            <a className={`nav-item ${active==='MyApps' ? 'active':''}`} onClick={() => setActive('MyApps')}>My Applications</a>
+            <a className={`nav-item ${active==='Teams' ? 'active':''}`} onClick={() => setActive('Teams')}>Teams</a>
           <a className={`nav-item ${active==='Stats' ? 'active':''}`} onClick={() => setActive('Stats')}>Stats</a>
           <a className={`nav-item ${active==='Settings' ? 'active':''}`} onClick={() => setActive('Settings')}>Settings</a>
         </nav>
@@ -181,7 +186,7 @@ export default function Dashboard({ user }: { user: User }){
                 <h4>Points</h4>
                 <div className="big">{profile?.points ?? 0}</div>
                 <div className="small muted">Total points earned</div>
-                <div className="small muted">{profile?.totalCommits ?? 0} commits • {profile?.totalPullRequests ?? 0} PRs</div>
+                <div className="small muted">{profile?.totalCommits ?? 0} contributions • {profile?.totalPullRequests ?? 0} PRs</div>
               </div>
               <div className="card overview">
                 <h4>Contributions</h4>
@@ -247,7 +252,7 @@ export default function Dashboard({ user }: { user: User }){
                         </div>
                         <div className="proj-right">
                           <div className="small muted">{new Date(p.createdAt || p.verifiedAt).toLocaleString()}</div>
-                          <div className="small muted">{p.commitsCount ?? 0} commits</div>
+                          <div className="small muted">{p.commitsCount ?? 0} contributions</div>
                           <div className="small muted">{p.pullRequestsCount ?? 0} PRs</div>
                           <div className="stars">{p.pointsAwarded ?? 0} pts</div>
                         </div>
@@ -289,6 +294,20 @@ export default function Dashboard({ user }: { user: User }){
               <div className="badge-large">Verifier</div>
               <div className="badge-large">Mentor</div>
             </div>
+          </div>
+        ) : active === 'OwnerApps' ? (
+          <div>
+            <DashboardOwnerApplications user={user} />
+          </div>
+        ) : active === 'MyApps' ? (
+          <div>
+            <DashboardMyApplications user={user} />
+          </div>
+        ) : active === 'Teams' ? (
+          <div>
+            <React.Suspense fallback={<div className="card">Loading teams…</div>}>
+              <Teams user={user} />
+            </React.Suspense>
           </div>
         ) : active === 'Stats' ? (
           <div>
@@ -343,6 +362,20 @@ const ProfilePlaceholder = (props:{user:User}) => {
   const Profile = React.lazy(() => import('./ProfilePage'));
   return <Profile user={props.user} projects={undefined} certs={undefined} achievements={undefined} />;
 };
+
+// placeholders for owner/apps pages
+const OwnerAppsPlaceholder = (props:{user:any}) => {
+  const Owner = React.lazy(() => import('./DashboardOwnerApplications'));
+  return <Owner user={props.user} />;
+};
+
+const MyAppsPlaceholder = (props:{user:any}) => {
+  const Mine = React.lazy(() => import('./DashboardMyApplications'));
+  return <Mine user={props.user} />;
+};
+
+// Lazy load Teams page
+const Teams = React.lazy(() => import('./Teams'));
 
 // render modal at bottom of file so TSX compiles
 export function DashboardWithModalWrapper(props:{user:User}){

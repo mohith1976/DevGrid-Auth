@@ -1,7 +1,7 @@
 import React from 'react';
 
 const items = [
-  { title: 'Verified Projects', desc: 'We verify repositories, commits and release tags to ensure work authenticity.' },
+  { title: 'Verified Projects', desc: 'We verify repositories, contributions and release tags to ensure work authenticity.' },
   { title: 'Find Contribution Opportunities', desc: 'Discover open-source projects matching your skills and issues you can contribute to.' },
   { title: 'Certificate OCR', desc: 'Upload certificates; we extract details automatically and attach them to your profile.' },
   { title: 'Skill Maps & Stats', desc: 'Automatic skill-level tracking with contribution maps and activity visualizations.' },
