@@ -49,8 +49,8 @@ export class ProjectsController {
     const decoded = this.verifyToken(req);
     const userId = decoded.sub;
     const profile = await this.svc.getProfileForUser(userId);
-    // also include aggregated GitHub account stats
-    const aggregate = await this.svc.getGithubAggregateForUser(userId);
+    // also include aggregated GitHub account stats (enriched)
+    const aggregate = await this.svc.getGithubAggregateForUserPublic(userId);
     return { profile, aggregate };
   }
 
@@ -58,7 +58,7 @@ export class ProjectsController {
   async profileAggregate(@Req() req: any) {
     const decoded = this.verifyToken(req);
     const userId = decoded.sub;
-    const aggregate = await this.svc.getGithubAggregateForUser(userId);
+    const aggregate = await this.svc.getGithubAggregateForUserPublic(userId);
     return { aggregate };
   }
 

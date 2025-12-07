@@ -7,3 +7,5 @@ build/
 /.vscode
 frontend/node_modules/
 backend/node_modules/
+backend/backend/uploads/
+backend/backend/logs/*.log

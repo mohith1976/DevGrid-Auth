@@ -32,6 +32,7 @@ const CERT_SCHEMA = new mongoose.Schema({
   title: String,
   issuer: String,
   year: Number,
+  file: String,
   meta: mongoose.Schema.Types.Mixed,
 }, { timestamps: true });
 
@@ -39,6 +40,7 @@ const ACHV_SCHEMA = new mongoose.Schema({
   userId: { type: String, required: true },
   name: String,
   description: String,
+  media: [{ type: String }],
   awardedAt: Date,
 }, { timestamps: true });
 

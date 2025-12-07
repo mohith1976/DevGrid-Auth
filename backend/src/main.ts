@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import * as express from 'express';
 import { AppModule } from './app.module';
 import { initLanguageQueue } from './queues/languageQueue';
 import { ProjectsService } from './projects/projects.service';
@@ -13,6 +14,13 @@ async function bootstrap() {
   const corsOrigin = isProd ? (process.env.FRONTEND_URL || 'http://localhost:5173') : true;
   app.enableCors({ origin: corsOrigin, credentials: true });
   const port = process.env.PORT || 3000;
+  // serve uploads folder for media proof files
+  const uploadsFolder = require('path').join(process.cwd(), 'backend', 'uploads');
+  try {
+    app.use('/uploads', express.static(uploadsFolder));
+  } catch (e) {
+    console.warn('Failed to register uploads static middleware', (e as any)?.message || e);
+  }
   await app.listen(port);
   console.log(`Backend listening on http://localhost:${port}`);
 

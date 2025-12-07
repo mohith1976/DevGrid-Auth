@@ -5,6 +5,7 @@ import Toast from './Toast';
 import axios from 'axios';
 import DeveloperStats from './DeveloperStats';
 import LanguageSnapshot from './LanguageSnapshot';
+import Achievements from './Achievements';
 import ProposalsList from './ProposalsList';
 import ProposalCreate from './ProposalCreate';
 import DashboardOwnerApplications from './DashboardOwnerApplications';
@@ -31,16 +32,31 @@ function IconStar(){
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 17.3l6.18 3.9-1.64-7.03L21 9.24l-7.19-.61L12 2 10.19 8.63 3 9.24l4.46 4.93L5.82 21.2 12 17.3z" stroke="currentColor" strokeWidth="0.6" strokeLinejoin="round"/></svg>);
 }
 
+function IconProfile(){
+  return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-7 3-7 6v1h14v-1c0-3-3-6-7-6z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>);
+}
+function IconProposals(){
+  return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M3 7h18M7 11h10M9 15h6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>);
+}
+function IconTeams(){
+  return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M16 11c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM8 11c1.657 0 3-1.343 3-3S9.657 5 8 5 5 6.343 5 8s1.343 3 3 3zM2 21c0-2.21 3.582-4 8-4s8 1.79 8 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>);
+}
+function IconStats(){
+  return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M3 12h3v8H3zM10 8h3v12h-3zM17 3h3v17h-3z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>);
+}
+// Settings removed
+
 export default function Dashboard({ user }: { user: User }){
   const [projects, setProjects] = useState<Array<any>>([]);
   const [profile, setProfile] = useState<any>({ points: 0, contributionCount: 0, level: 1 });
   const [aggregate, setAggregate] = useState<any>(null);
   const [activities, setActivities] = useState<string[]>([]);
   const [repos, setRepos] = useState<any[]>([]);
+  const [teams, setTeams] = useState<any[]>([]);
   const [toast, setToast] = useState<{msg:string,type?:'info'|'success'|'error'} | null>(null);
   const [confirmModal, setConfirmModal] = useState<{open:boolean, repo?:any} | null>(null);
 
-  const [active, setActive] = React.useState<'Projects'|'Profile'|'Achievements'|'Stats'|'Settings'|'Teams'|'OwnerApps'|'MyApps'>('Projects');
+  const [active, setActive] = React.useState<'Projects'|'Profile'|'Achievements'|'Stats'|'Teams'|'OwnerApps'|'MyApps'>('Projects');
   // local, in-dashboard proposal view: null = none, 'list' = browse, 'create' = create form
   const [proposalView, setProposalView] = React.useState<null|'list'|'create'>(null);
 
@@ -54,15 +70,17 @@ export default function Dashboard({ user }: { user: User }){
   const refresh = async () => {
     const token = localStorage.getItem('token');
     try {
-      const [pRes, statsRes, reposRes] = await Promise.all([
+      const [pRes, statsRes, reposRes, teamsRes] = await Promise.all([
         axios.get('http://localhost:3000/api/projects', { headers: { Authorization: `Bearer ${token}` } }),
         axios.get('http://localhost:3000/api/projects/profile/me', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('http://localhost:3000/api/projects/repos', { headers: { Authorization: `Bearer ${token}` } })
+        axios.get('http://localhost:3000/api/projects/repos', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('http://localhost:3000/api/teams', { headers: { Authorization: `Bearer ${token}` } })
       ]);
       setProjects(pRes.data || []);
       setProfile(statsRes.data?.profile || { points: 0, contributionCount: 0, level: 1 });
       setAggregate(statsRes.data?.aggregate || null);
       setRepos(reposRes.data?.repos || []);
+      setTeams(teamsRes.data?.teams || []);
       updateActivities(pRes.data || []);
       // make sure we attempt to load account-level aggregate (may be computed async)
       try { loadAggregate(); } catch (e) { /* ignore */ }
@@ -130,33 +148,39 @@ export default function Dashboard({ user }: { user: User }){
         <div className="side-brand">
           <div className="logo">DG</div>
           <div>
-            <div className="small">DevGrid</div>
+           
             <div className="muted small">Developer Dashboard</div>
           </div>
         </div>
 
         <nav className="side-nav">
-          <a className={`nav-item ${active==='Profile' ? 'active':''}`} onClick={() => setActive('Profile')}><div style={{width:18}}/> Profile</a>
-          <a className={`nav-item ${active==='Projects' ? 'active':''}`} onClick={() => setActive('Projects')}><IconRepo /> Projects</a>
-          <a className={`nav-item ${active==='Achievements' ? 'active':''}`} onClick={() => setActive('Achievements')}><IconStar /> Achievements</a>
-            <a className={`nav-item ${active==='OwnerApps' ? 'active':''}`} onClick={() => setActive('OwnerApps')}>Manage Proposals</a>
-            <a className={`nav-item ${active==='MyApps' ? 'active':''}`} onClick={() => setActive('MyApps')}>My Applications</a>
-            <a className={`nav-item ${active==='Teams' ? 'active':''}`} onClick={() => setActive('Teams')}>Teams</a>
-          <a className={`nav-item ${active==='Stats' ? 'active':''}`} onClick={() => setActive('Stats')}>Stats</a>
-          <a className={`nav-item ${active==='Settings' ? 'active':''}`} onClick={() => setActive('Settings')}>Settings</a>
+          <a className={`nav-item ${active==='Profile' ? 'active':''}`} onClick={() => setActive('Profile')}><span className="nav-icon"><IconProfile /></span> Profile</a>
+          <a className={`nav-item ${active==='Projects' ? 'active':''}`} onClick={() => setActive('Projects')}><span className="nav-icon"><IconRepo /></span> Projects</a>
+          <a className={`nav-item ${active==='Achievements' ? 'active':''}`} onClick={() => setActive('Achievements')}><span className="nav-icon"><IconStar /></span> Achievements</a>
+          <a className={`nav-item ${active==='OwnerApps' ? 'active':''}`} onClick={() => setActive('OwnerApps')}><span className="nav-icon"><IconProposals /></span> Proposals</a>
+          <a className={`nav-item ${active==='MyApps' ? 'active':''}`} onClick={() => setActive('MyApps')}><span className="nav-icon"><IconProposals /></span> My Applications</a>
+          <a className={`nav-item ${active==='Teams' ? 'active':''}`} onClick={() => setActive('Teams')}><span className="nav-icon"><IconTeams /></span> Teams</a>
+          <a className={`nav-item ${active==='Stats' ? 'active':''}`} onClick={() => setActive('Stats')}><span className="nav-icon"><IconStats /></span> Stats</a>
+          {/* Settings removed */}
         </nav>
       </aside>
 
       <main className="dash-main">
         <div className="topbar">
-          <div className="search">🔍 Search projects, people, badges</div>
+          <div className="header-illustration">✨</div>
           <div className="top-actions">
-            <button className="btn" onClick={()=>setShowAdd(true)}>Publish Project</button>
-            <button className="btn" onClick={()=>{ setProposalView('list'); }}>Browse Proposals</button>
-            <button className="btn" onClick={()=>{ setProposalView('create'); }}>Create Proposal</button>
-            {/* recompute button removed — profile recalculation happens automatically on publish/unpublish */}
-            <div className="small muted">Hello, <strong>{user.username}</strong></div>
-            {user.avatarUrl ? <img src={user.avatarUrl} className="avatar-sm" alt="avatar" /> : <div className="avatar-sm placeholder">{user.username?.[0]}</div>}
+            <div className="action-group">
+              <button className="btn primary" onClick={()=>setShowAdd(true)}><span className="btn-icon"><IconRepo/></span> Publish</button>
+              <button className="btn ghost" onClick={()=>{ setProposalView('list'); }}><span className="btn-icon"><IconProposals/></span> Browse</button>
+              <button className="btn ghost" onClick={()=>{ setProposalView('create'); }}><span className="btn-icon"><IconProposals/></span> Create</button>
+            </div>
+            <div className="profile-inline">
+              <div className="hello small muted">Hello, <strong>{user.username}</strong></div>
+              <div className="avatar-with-level">
+                {user.avatarUrl ? <img src={user.avatarUrl} className="avatar-sm" alt="avatar" /> : <div className="avatar-sm placeholder">{user.username?.[0]}</div>}
+                <div className="level-badge">{profile?.level ?? 1}</div>
+              </div>
+            </div>
           </div>
         </div>
         {proposalView ? (
@@ -198,11 +222,7 @@ export default function Dashboard({ user }: { user: User }){
                 <div className="big">{aggregate?.totalPRs ?? profile?.totalPullRequests ?? 0}</div>
                 <div className="small muted">Total PRs (account)</div>
               </div>
-              <div className="card overview">
-                <h4>Level</h4>
-                <div className="big">Level {profile?.level ?? 1}</div>
-                <div className="small muted">Progress to next level</div>
-              </div>
+              {/* Level card removed; level now shown as small badge on avatar */}
             </div>
 
             <div className="dash-grid">
@@ -242,58 +262,84 @@ export default function Dashboard({ user }: { user: User }){
                   </ul>
                 </div>
                 <div className="card">
-                  <h4>Recent Projects</h4>
-                  <ul className="project-list">
-                    {projects.map((p:any) => (
-                      <li key={p._id || p.repoUrl} className="project-item">
-                        <div className="proj-left">
-                          <div className="proj-name">{p.name || p.repoUrl}</div>
-                          <div className="muted small">{p.description || p.repoUrl}</div>
-                        </div>
-                        <div className="proj-right">
-                          <div className="small muted">{new Date(p.createdAt || p.verifiedAt).toLocaleString()}</div>
-                          <div className="small muted">{p.commitsCount ?? 0} contributions</div>
-                          <div className="small muted">{p.pullRequestsCount ?? 0} PRs</div>
-                          <div className="stars">{p.pointsAwarded ?? 0} pts</div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                  <h4>Open-source Publications</h4>
+                  <div className="pub-row">
+                    <div className="pub-stat">
+                      <div className="stat-num">{projects.length}</div>
+                      <div className="small muted">Published projects</div>
+                    </div>
+                    <div className="pub-content">
+                      <div className="small muted">Projects published to Open Source</div>
+                      <div className="pub-list">
+                        {projects.slice(0,6).map((p:any)=> (
+                          <article key={p._id || p.repoUrl} className="pub-card">
+                            <div className="pub-title"><a href={p.repoUrl || p.url || '#'} target="_blank" rel="noreferrer">{p.name || p.repoUrl}</a></div>
+                            {p.description ? <div className="pub-desc muted small">{p.description}</div> : null}
+                            <div className="pub-meta small muted">
+                              <span>{p.commitsCount ?? p.contributionsCount ?? 0} contribs</span>
+                              <span>•</span>
+                              <span>{p.pullRequestsCount ?? p.prsCount ?? 0} PRs</span>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                      {projects.length > 6 && <div className="small" style={{marginTop:8}}><a href="#" className="small">View all publications</a></div>}
+                    </div>
+                  </div>
                 </div>
+              </div>
 
-                <div className="card">
+              <div className="col-right">
+                
+
+                  <div className="card">
+                    <h4>Ongoing Team Projects</h4>
+                    <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                      {teams.length === 0 && <div className="small muted">No active team projects</div>}
+                      {teams.map(t=> (
+                        <div key={t._id} style={{display:'flex',alignItems:'center',gap:10}}>
+                          <div className="avatar-sm placeholder">{t.name?.charAt(0) || 'T'}</div>
+                          <div>
+                            <div style={{fontWeight:700}}>{t.name || (t.proposal?.title || 'Team')}</div>
+                            <div className="small muted">{(t.members || []).length} members • {t.proposal?.status || 'active'}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <h4>Team Notifications</h4>
+                    <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                      {/* derive recent messages */}
+                      {teams.flatMap(t => (t.lastMessage ? [{ teamId: t._id, teamName: t.name||t.proposal?.title, text: t.lastMessage.message, when: t.lastMessage.createdAt, author: t.lastMessage.authorName || t.lastMessage.userId }]:[])).slice(0,6).map((n:any,i:number)=> (
+                        <div key={i} className="notif-item" style={{display:'flex',gap:10,alignItems:'center'}}>
+                          <div className="avatar-sm placeholder">{(n.author||'U')[0]}</div>
+                          <div>
+                            <div style={{fontWeight:700}}>{n.author}</div>
+                            <div className="small muted">{String(n.text).slice(0,80)} • {new Date(n.when).toLocaleString()}</div>
+                          </div>
+                        </div>
+                      ))}
+                      {teams.length === 0 && <div className="small muted">No recent notifications</div>}
+                    </div>
+                  </div>
+                      <div className="card">
                   <h4>Activity</h4>
                   <ul className="activity">
                     {activities.map((a,i) => <li key={i} className="small muted">{a}</li>)}
                   </ul>
                 </div>
-              </div>
-
-              <div className="col-right">
-                <div className="card">
-                  <h4>Achievements</h4>
-                  <div className="badges-row">
-                    <div className="badge-large">Top100</div>
-                    <div className="badge-large">Verifier</div>
-                    <div className="badge-large">Contributor</div>
+                  <div className="card">
+                    <h4>Language Snapshot</h4>
+                    <LanguageSnapshot token={localStorage.getItem('token')} />
                   </div>
-                </div>
-
-                <div className="card">
-                  <h4>Language Snapshot</h4>
-                  <LanguageSnapshot token={localStorage.getItem('token')} />
-                </div>
               </div>
             </div>
           </>
         ) : active === 'Achievements' ? (
-          <div className="card">
-            <h4>Achievements & Badges</h4>
-            <div className="badges-row">
-              <div className="badge-large">Top100</div>
-              <div className="badge-large">Verifier</div>
-              <div className="badge-large">Mentor</div>
-            </div>
+          <div>
+            <Achievements />
           </div>
         ) : active === 'OwnerApps' ? (
           <div>
@@ -314,7 +360,7 @@ export default function Dashboard({ user }: { user: User }){
             <DeveloperStats />
           </div>
         ) : (
-          <div className="card">Settings panel coming soon.</div>
+          <div />
         )}
 
       </main>

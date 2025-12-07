@@ -7,6 +7,7 @@ type Props = {
 
 export default function LanguageSnapshot({ token: initialToken }: Props) {
   const [aggregate, setAggregate] = useState<any>(null);
+  const [repoCounts, setRepoCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [hidden, setHidden] = useState<string[]>(() => {
     try { const raw = localStorage.getItem('hiddenLanguages'); return raw ? JSON.parse(raw) : []; } catch { return []; }
@@ -19,6 +20,22 @@ export default function LanguageSnapshot({ token: initialToken }: Props) {
     try {
       const res = await axios.get('http://localhost:3000/api/projects/profile/aggregate', { headers: { Authorization: `Bearer ${tok}` } });
       setAggregate(res.data?.aggregate || null);
+      // fetch owner's repos and compute repo-count per language
+      try {
+        const rres = await axios.get('http://localhost:3000/api/projects/repos', { headers: { Authorization: `Bearer ${tok}` } });
+        const repos = rres.data?.repos || [];
+        const counts: Record<string, number> = {};
+        for (const repo of repos) {
+          const langs = repo.languages || {};
+          // languages keys are language names like 'JavaScript', 'HTML'
+          for (const k of Object.keys(langs)) {
+            counts[k] = (counts[k] || 0) + 1;
+          }
+        }
+        setRepoCounts(counts);
+      } catch (e) {
+        // ignore repo counts failure
+      }
     } catch (e) {
       // ignore for now
     } finally { setLoading(false); }
@@ -50,7 +67,8 @@ export default function LanguageSnapshot({ token: initialToken }: Props) {
     const pct = typeof v === 'number' ? v : (v?.percent ?? 0);
     const lvl = typeof v === 'object' && v?.level ? v.level : null;
     const lbl = typeof v === 'object' && v?.label ? v.label : null;
-    const repoCount = typeof v === 'object' && (typeof v?.repoCount === 'number') ? v.repoCount : 0;
+    const repoCountFromV = typeof v === 'object' && (typeof v?.repoCount === 'number') ? v.repoCount : undefined;
+    const repoCount = typeof repoCountFromV === 'number' ? repoCountFromV : (repoCounts[k] || 0);
     return { name: k, percent: pct, level: lvl, label: lbl, repoCount };
   }).sort((a:any,b:any)=>b.percent - a.percent);
 
@@ -65,15 +83,21 @@ export default function LanguageSnapshot({ token: initialToken }: Props) {
     <div>
       {loading && <div className="small muted">Updating languages…</div>}
       {!loading && normalized.length === 0 && <div className="small muted">No skill data yet</div>}
+      {/* Icons for hide/unhide */}
       {!loading && normalized.length > 0 && (
         visible.slice(0,8).map((s:any) => (
           <div key={s.name} style={{marginBottom:10}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <div className="skill-name">{s.name}</div>
-              <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                {s.label && <div className="small" style={{color:'#9cc'}}>Lvl {s.level} • {s.label}</div>}
+              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                <div className="skill-name">{s.name}</div>
                 <div className="small muted">{s.percent}% • {s.repoCount} repos</div>
-                <button className="btn ghost small" onClick={() => toggleHide(s.name)} style={{marginLeft:8}}>{hidden.includes(s.name) ? 'Unhide' : 'Hide'}</button>
+              </div>
+              <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                <button title="Hide language" className="btn ghost small" onClick={() => toggleHide(s.name)} style={{marginLeft:8,padding:'6px 8px'}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path d="M17.94 17.94A10 10 0 0 1 6.06 6.06M1 1l22 22" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
               </div>
             </div>
             <div className="skill-bar"><div className="skill-fill" style={{width:`${s.percent}%`}}/></div>
@@ -82,7 +106,24 @@ export default function LanguageSnapshot({ token: initialToken }: Props) {
       )}
       {!loading && normalized.length > 0 && (
         <div style={{marginTop:8}}>
-          <div className="small muted">Hidden languages: {hidden.length === 0 ? 'none' : hidden.join(', ')}</div>
+          <div className="small muted">Hidden languages:</div>
+          <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>
+            {hidden.length === 0 ? (
+              <div className="small muted">none</div>
+            ) : (
+              hidden.map((h) => (
+                <div key={h} style={{display:'flex',alignItems:'center',gap:8,background:'rgba(255,255,255,0.02)',padding:'6px 10px',borderRadius:8}}>
+                  <div className="small" style={{fontWeight:700}}>{h}</div>
+                  <button title="Unhide language" className="btn ghost small" onClick={() => toggleHide(h)} style={{padding:'6px 8px'}}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <path d="M12 5c7 0 11 7 11 7s-4 7-11 7S1 12 1 12s4-7 11-7z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>
