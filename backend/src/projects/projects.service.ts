@@ -654,6 +654,75 @@ export class ProjectsService {
     return { totalRepos, commitsByUser, totalPRs, skills, commitsByMonth: months, commitsByDay, prsByMonth, issuesByMonth, forksByMonth, totalForks };
   }
 
+  // public aggregate wrapper used by controllers: include followers, starred count, and contributions to our open-source projects
+  async getGithubAggregateForUserPublic(userId: string) {
+    const agg = await this.getGithubAggregateForUser(userId).catch(() => null);
+    const result: any = agg || {};
+    try {
+      const pgUser = await this.prisma.user.findUnique({ where: { id: userId } });
+      if (!pgUser) return result;
+      const login = pgUser.username;
+      let token: string | undefined;
+      if (pgUser.githubAccessToken) {
+        try { token = decrypt(pgUser.githubAccessToken); } catch (e:any) { /* ignore */ }
+      }
+      const headers: any = { Accept: 'application/vnd.github.v3+json' };
+      if (token) headers.Authorization = `token ${token}`;
+
+      // fetch followers via user endpoint
+      try {
+        const userRes = await axios.get(`https://api.github.com/users/${login}`, { headers, validateStatus: ()=>true });
+        if (userRes.status === 200 && userRes.data) {
+          result.followers = Number(userRes.data.followers) || 0;
+        }
+      } catch (e:any) { /* ignore */ }
+
+      // fetch starred count (handle pagination). Strategy: request per_page=100 and use Link header to derive total
+      try {
+        const first = await axios.get(`https://api.github.com/users/${login}/starred?per_page=100&page=1`, { headers, validateStatus: ()=>true });
+        if (first.status === 200 && Array.isArray(first.data)) {
+          const link = first.headers && (first.headers.link || first.headers.Link);
+          if (!link) {
+            result.starredCount = first.data.length;
+          } else {
+            // parse rel="last" page number
+            const m = String(link).match(/<[^>]+[&?]page=(\d+)[^>]*>;\s*rel="last"/);
+            if (m && m[1]) {
+              const lastPage = Number(m[1]);
+              // fetch last page to count remainder
+              const last = await axios.get(`https://api.github.com/users/${login}/starred?per_page=100&page=${lastPage}`, { headers, validateStatus: ()=>true });
+              const lastCount = Array.isArray(last.data) ? last.data.length : 0;
+              result.starredCount = (lastPage - 1) * 100 + lastCount;
+            } else {
+              // fallback: estimate using first page length
+              result.starredCount = first.data.length;
+            }
+          }
+        }
+      } catch (e:any) { /* ignore */ }
+
+      // compute contributions to projects stored in our DB where this user appears as collaborator/contributor
+      try {
+        const Project = this.mongo.getProjectModel();
+        // collaborators stored as objects with { github }
+        const collProjects = await Project.find({ $or: [{ 'collaborators.github': login }, { contributors: login }] }).lean();
+        let totalContribs = 0;
+        const perProject: any[] = [];
+        for (const p of collProjects) {
+          const c = Number(p.commitsCount || p.contributionsCount || 0);
+          totalContribs += c;
+          perProject.push({ name: p.name || p.repoUrl || p._id, commits: c });
+        }
+        // sort by commits desc
+        perProject.sort((a,b)=>b.commits - a.commits);
+        result.openSourceContribs = { totalCommits: totalContribs, projects: perProject };
+      } catch (e:any) { /* ignore */ }
+    } catch (e:any) {
+      this.logger.warn('Failed to enrich aggregate with followers/starred/openSourceContribs', (e as any)?.message || e);
+    }
+    return result;
+  }
+
   // fetch owner repositories with basic metrics for dashboard (languages, contributors, commits)
   async getUserReposForUser(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });

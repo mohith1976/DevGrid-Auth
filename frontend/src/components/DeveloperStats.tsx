@@ -147,51 +147,89 @@ export default function DeveloperStats(){
 
   return (
     <section className="dev-stats">
-      <h2>Developer Insights</h2>
-      <div className="stats-grid">
-        <div className="card">
-          <h4>Language Composition</h4>
-          <div style={{display:'flex',gap:12,alignItems:'flex-start'}}>
-            <div style={{width:200}}>
-              {/* Use the shared LanguageSnapshot component so hide/unhide is consistent across pages */}
-              <LanguageSnapshot token={token} />
-            </div>
+      <h2 style={{marginBottom:12}}>Developer Insights</h2>
+
+      {/* Section 1: Summary */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 320px',gap:16,marginBottom:18}}>
+        <div style={{display:'flex',flexDirection:'column',gap:12}}>
+          <div style={{display:'flex',gap:12}}>
             <div style={{flex:1}}>
-              {topLangs.map((t)=> (
-                <div key={t.name} style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-                  <div style={{display:'flex',gap:12,alignItems:'center'}}><div style={{width:10,height:10,background:'linear-gradient(90deg,#7c3aed,#06b6d4)',borderRadius:4}}></div><div>{t.name}</div></div>
-                  <div className="small muted">{t.percent}% • {t.repoCount} repos</div>
+              <div className="card" style={{padding:14,display:'flex',gap:12,alignItems:'center'}}>
+                <div style={{width:220,flexShrink:0}}>
+                  <LanguageSnapshot token={token} />
                 </div>
-              ))}
+                <div style={{flex:1,display:'flex',flexDirection:'column',gap:8}}>
+                  <div style={{display:'flex',gap:12,alignItems:'center'}}>
+                    <div style={{width:56,height:56,borderRadius:12,background:'linear-gradient(90deg,#7c3aed,#06b6d4)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:700}}>DG</div>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:16}}>Overview</div>
+                      <div className="small muted">High-level account metrics</div>
+                    </div>
+                  </div>
+
+                  <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+                    <div style={{background:'rgba(255,255,255,0.02)',padding:10,borderRadius:8,minWidth:140}}>
+                      <div className="small muted">Total Repos</div>
+                      <div style={{fontWeight:700,fontSize:18}}>{aggregate?.totalRepos ?? 0}</div>
+                    </div>
+                    <div style={{background:'rgba(255,255,255,0.02)',padding:10,borderRadius:8,minWidth:140}}>
+                      <div className="small muted">Total PRs</div>
+                      <div style={{fontWeight:700,fontSize:18}}>{aggregate?.totalPRs ?? aggregate?.totalPrs ?? 0}</div>
+                    </div>
+                    <div style={{background:'rgba(255,255,255,0.02)',padding:10,borderRadius:8,minWidth:140}}>
+                      <div className="small muted">Total Contributions</div>
+                      <div style={{fontWeight:700,fontSize:18}}>{aggregate?.commitsByUser ?? 0}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <div style={{marginTop:12}}>
-            <div className="small muted">Hide heavy languages to highlight niche stacks</div>
+
+          <div className="card" style={{padding:12}}>
+            <h4 style={{margin:'0 0 8px 0'}}>Contributions This Year</h4>
+            <div style={{padding:8,background:'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))',borderRadius:8}}>
+              <LineChart months={commitsByMonth.map((m:any)=>({ label: m.label, count: m.count }))} />
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',marginTop:8}}>
+              <div className="small muted">Monthly contributions</div>
+              <div className="small muted">Total: {commitsByMonth.reduce((s:any,m:any)=>s + (m.count||0), 0)}</div>
+            </div>
           </div>
         </div>
 
-        <div className="card">
-          <h4>Contributions This Year</h4>
-          <div style={{padding:8,background:'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))',borderRadius:8}}>
-            <LineChart months={commitsByMonth.map((m:any)=>({ label: m.label, count: m.count }))} />
-          </div>
-          <div style={{display:'flex',justifyContent:'space-between',marginTop:8}}>
-            <div className="small muted">Monthly contributions</div>
-            <div className="small muted">Total: {commitsByMonth.reduce((s:any,m:any)=>s + (m.count||0), 0)}</div>
-          </div>
-          <div style={{marginTop:12}}>
-            <h5 style={{margin:'6px 0'}}>Activity Heatmap</h5>
+        <div style={{display:'flex',flexDirection:'column',gap:12}}>
+          <div className="card" style={{padding:12}}>
+            <h4 style={{margin:'0 0 8px 0'}}>Activity Heatmap</h4>
             {Array.isArray(aggregate?.commitsByDay) && aggregate.commitsByDay.length > 0 ? (
               <Heatmap commitsByDay={aggregate.commitsByDay} />
             ) : (
               <div className="small muted">No contribution heatmap available. Connect GitHub or allow more activity/events to be indexed.</div>
             )}
+            <div style={{marginTop:10}} className="small muted">Activity over the past year</div>
+          </div>
+
+          <div className="card" style={{padding:12}}>
+            <h4 style={{margin:'0 0 8px 0'}}>Quick Stats</h4>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+              <div style={{background:'rgba(255,255,255,0.02)',padding:10,borderRadius:8}}>
+                <div className="small muted">Followers</div>
+                <div style={{fontWeight:700}}>{aggregate?.followers ?? '-'}</div>
+              </div>
+              <div style={{background:'rgba(255,255,255,0.02)',padding:10,borderRadius:8}}>
+                <div className="small muted">Starred Repos</div>
+                <div style={{fontWeight:700}}>{aggregate?.starredCount ?? (repos.reduce((s:any,r:any)=>s + (r.stargazers_count||r.stars||0), 0))}</div>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div className="card">
-          <h4>PRs & Recent Repos</h4>
-          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+      {/* Section 2: Activity & Repos */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <div className="card" style={{padding:12}}>
+          <h4 style={{margin:'0 0 8px 0'}}>PRs & Trends</h4>
+          <div style={{display:'flex',flexDirection:'column',gap:12}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
               <div>
                 <div className="small muted">Total PRs</div>
@@ -201,38 +239,52 @@ export default function DeveloperStats(){
                 <DonutChart size={100} data={[{label:'PRs', value: aggregate?.totalPRs || 0},{label:'Repos', value: aggregate?.totalRepos || 0}]} />
               </div>
             </div>
-            <div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-                <div>
-                  <div className="small muted">PRs (last 12 months)</div>
-                  {Array.isArray(aggregate?.prsByMonth) && aggregate.prsByMonth.length > 0 ? (
-                    <div style={{height:56}}><SmallBarChart months={aggregate.prsByMonth.map((m:any)=>({label:m.label,count:m.count}))} /></div>
-                  ) : (
-                    <div className="small muted">No PR data available</div>
-                  )}
-                </div>
-                <div>
-                  <div className="small muted">Issues closed</div>
-                  {Array.isArray(aggregate?.issuesByMonth) && aggregate.issuesByMonth.length > 0 ? (
-                    <div style={{height:56}}><SmallBarChart months={aggregate.issuesByMonth.map((m:any)=>({label:m.label,count:m.count}))} /></div>
-                  ) : (
-                    <div className="small muted">No issues data available</div>
-                  )}
-                </div>
-              </div>
 
-              <div style={{marginTop:8}}>
-                <div className="small muted">Latest repos</div>
-                <ul className="project-list small" style={{maxHeight:220,overflow:'auto',marginTop:8}}>
-                  {repos.slice(0,8).map(r=> (
-                    <li key={r.html_url || r.full} className="project-item">
-                      <div className="proj-left"><div className="proj-name">{r.name}</div><div className="muted small">{r.description}</div></div>
-                      <div className="proj-right"><div className="small muted">{r.stargazers_count ?? r.stars ?? 0} ★</div></div>
-                    </li>
-                  ))}
-                </ul>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+              <div>
+                <div className="small muted">PRs (last 12 months)</div>
+                {Array.isArray(aggregate?.prsByMonth) && aggregate.prsByMonth.length > 0 ? (
+                  <div style={{height:56}}><SmallBarChart months={aggregate.prsByMonth.map((m:any)=>({label:m.label,count:m.count}))} /></div>
+                ) : (
+                  <div className="small muted">No PR data available</div>
+                )}
+              </div>
+              <div>
+                <div className="small muted">Issues closed</div>
+                {Array.isArray(aggregate?.issuesByMonth) && aggregate.issuesByMonth.length > 0 ? (
+                  <div style={{height:56}}><SmallBarChart months={aggregate.issuesByMonth.map((m:any)=>({label:m.label,count:m.count}))} /></div>
+                ) : (
+                  <div className="small muted">No issues data available</div>
+                )}
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="card" style={{padding:12}}>
+          <h4 style={{margin:'0 0 8px 0'}}>Open-source Contributions</h4>
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            {aggregate?.openSourceContribs ? (
+              <>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <div>
+                    <div className="small muted">Total contributions to our projects</div>
+                    <div className="big">{aggregate.openSourceContribs.totalCommits ?? 0}</div>
+                  </div>
+                </div>
+                <div style={{marginTop:8}}>
+                  {Array.isArray(aggregate.openSourceContribs.projects) && aggregate.openSourceContribs.projects.length > 0 ? (
+                    <div style={{height:72}}>
+                      <SmallBarChart months={aggregate.openSourceContribs.projects.slice(0,12).map((p:any)=>({ label: p.name, count: p.commits }))} />
+                    </div>
+                  ) : (
+                    <div className="small muted">No recorded contributions to projects in our collection.</div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="small muted">No data available for open-source contributions.</div>
+            )}
           </div>
         </div>
       </div>
