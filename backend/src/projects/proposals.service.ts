@@ -273,11 +273,58 @@ export class ProposalsService {
     const Project = this.mongo.getProjectModel();
     const Profile = this.mongo.getProfileModel();
     const profile = await Profile.findOne({ userId }).lean() as any;
-    const projects = await Project.find({ userId, verified: true }).lean() as any[];
+    let projects = await Project.find({ userId, verified: true }).lean() as any[];
 
-    const repoCount = projects.length;
+    let repoCount = projects.length;
     // contributions is the stored approximation of GitHub contributions/commits
-    const totalContributions = profile?.totalCommits || projects.reduce((s:any,p:any)=>s + (p.commitsCount || 0), 0);
+    let totalContributions = profile?.totalCommits || projects.reduce((s:any,p:any)=>s + (p.commitsCount || 0), 0);
+
+    // If the user hasn't published projects to the Projects collection, fall back
+    // to querying GitHub directly (best-effort) so applicants aren't auto-rejected
+    // simply because they didn't publish their repos.
+    if (repoCount === 0) {
+      try {
+        const pgUser = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (pgUser) {
+          let token: string | undefined;
+          if (pgUser.githubAccessToken) {
+            try { token = decrypt(pgUser.githubAccessToken); } catch (e:any) { this.logger.warn('Failed to decrypt token for applicant validation'); }
+          }
+          const headers: any = { Accept: 'application/vnd.github.v3+json' };
+          if (token) headers.Authorization = `token ${token}`;
+
+          const login = pgUser.username;
+          if (login) {
+            // fetch repos for this user (owner affiliation preferred when token present)
+            const url = token ? 'https://api.github.com/user/repos?per_page=100&affiliation=owner' : `https://api.github.com/users/${login}/repos?per_page=100`;
+            try {
+              const reposRes = await (await import('axios')).default.get(url, { headers, validateStatus: () => true });
+              if (reposRes && reposRes.status === 200 && Array.isArray(reposRes.data)) {
+                repoCount = (reposRes.data || []).length;
+                // sum contributions for this user across returned repos (best-effort)
+                let contribSum = 0;
+                for (const r of (reposRes.data || []).slice(0, 100)) {
+                  try {
+                    const owner = r.owner?.login || login;
+                    const name = r.name;
+                    const contrib = await (await import('axios')).default.get(`https://api.github.com/repos/${owner}/${name}/contributors?per_page=100`, { headers, validateStatus: () => true });
+                    if (contrib && contrib.status === 200 && Array.isArray(contrib.data)) {
+                      const me = (contrib.data || []).find((c:any) => String(c.login).toLowerCase() === String(login).toLowerCase());
+                      if (me && typeof me.contributions === 'number') contribSum += me.contributions;
+                    }
+                  } catch (e) { /* ignore per-repo contributor lookup failures */ }
+                }
+                if (contribSum > 0) totalContributions = contribSum;
+              }
+            } catch (e:any) {
+              this.logger.warn('Failed to fetch GitHub repos for applicant validation', (e as any)?.message || e);
+            }
+          }
+        }
+      } catch (e:any) {
+        this.logger.warn('Applicant GitHub fallback failed', (e as any)?.message || e);
+      }
+    }
     const level = profile?.level || 0;
 
     // languages requirement: check number of repos matching required languages
