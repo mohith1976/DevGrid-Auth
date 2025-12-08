@@ -3,7 +3,7 @@
  * Set S3 bucket CORS using AWS SDK v3.
  * Usage:
  *   node scripts/set-s3-cors.js
- *   node scripts/set-s3-cors.js http://localhost:5173,http://15.207.111.237
+ *   node scripts/set-s3-cors.js https://www.digitaldevgrid.tech,http://15.207.111.237
  */
 const { S3Client, PutBucketCorsCommand, GetBucketCorsCommand } = require('@aws-sdk/client-s3');
 const path = require('path');

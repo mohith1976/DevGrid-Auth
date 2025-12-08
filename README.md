@@ -119,10 +119,10 @@ docker compose up -d
 ```
 
 ## Using the App
-- Public home: `http://localhost:5173/`
-- Dashboard (authenticated): `http://localhost:5173/` after login.
-- Standalone portfolio canvas (nav‑less): `http://localhost:5173/portfolio`
-- Public profile by username: `http://localhost:5173/profile/<username>`
+- Public home: `https://www.digitaldevgrid.tech/`
+- Dashboard (authenticated): `https://www.digitaldevgrid.tech/` after login.
+- Standalone portfolio canvas (nav‑less): `https://www.digitaldevgrid.tech/portfolio`
+- Public profile by username: `https://www.digitaldevgrid.tech/profile/<username>`
 
 ## Key Endpoints (Backend)
 - `GET /auth/me` — Returns current user when authorized.
@@ -183,7 +183,7 @@ This project has been deployed and tested on an EC2 host running the backend API
 
 - S3 CORS and browser uploads:
 	- Browsers perform an OPTIONS preflight for PUT requests. You must configure the S3 bucket CORS to allow your frontend origin, and permit the actual methods used (GET, PUT, POST, HEAD).
-	- Example CORS rule applied during testing (allow origins `http://localhost:5173` and `http://<your-server-ip>`): AllowedMethods: `GET,PUT,POST,HEAD` and AllowedHeaders `*`.
+	- Example CORS rule applied during testing (allow origins `https://www.digitaldevgrid.tech` and `http://<your-server-ip>`): AllowedMethods: `GET,PUT,POST,HEAD` and AllowedHeaders `*`.
 	- If you do not want to use the AWS CLI on the server, a helper script `backend/scripts/set-s3-cors.js` (uses AWS SDK v3) was added to apply the CORS config using the same AWS env vars.
 
 - Diagnostics and helper scripts (added to `backend/scripts`):

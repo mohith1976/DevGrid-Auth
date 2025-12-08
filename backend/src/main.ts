@@ -11,7 +11,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   // Allow frontend origin. In development allow any origin to support varying Vite ports.
   const isProd = process.env.NODE_ENV === 'production';
-  const corsOrigin = isProd ? (process.env.FRONTEND_URL || 'http://localhost:5173') : true;
+  const corsOrigin = isProd ? (process.env.FRONTEND_URL || 'https://www.digitaldevgrid.tech') : true;
   app.enableCors({ origin: corsOrigin, credentials: true });
   const port = process.env.PORT || 3000;
   // serve uploads folder for media proof files

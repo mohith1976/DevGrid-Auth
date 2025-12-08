@@ -23,7 +23,7 @@ export class AuthController {
 
   @Get('github/callback')
   async handleCallback(@Query('code') code: string, @Res() res: any) {
-    const frontend = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontend = process.env.FRONTEND_URL || 'https://www.digitaldevgrid.tech';
     try {
       const result = await this.authService.handleGitHubCallback(code);
       const redirectUrl = new URL(frontend);
