@@ -6,8 +6,20 @@
  *   node scripts/set-s3-cors.js http://localhost:5173,http://15.207.111.237
  */
 const { S3Client, PutBucketCorsCommand, GetBucketCorsCommand } = require('@aws-sdk/client-s3');
+const path = require('path');
+const fs = require('fs');
 
 (async function(){
+  // try to load backend/.env if present
+  try {
+    const envPath = path.join(__dirname, '..', '.env');
+    if (fs.existsSync(envPath)) {
+      require('dotenv').config({ path: envPath });
+      console.log('Loaded env from', envPath);
+    }
+  } catch (e) {
+    // ignore
+  }
   try {
     const bucket = process.env.AWS_BUCKET;
     const region = process.env.AWS_REGION || 'ap-south-1';
