@@ -43,7 +43,8 @@ export default function Certifications({ hideForm=false, hideList=false, horizon
     const presign = await axios.post(`${API_BASE}/api/uploads/presign`, { filename: file.name, contentType: file.type, folder: 'certifications' }, { headers: { Authorization: `Bearer ${token}` } });
     const { url, publicUrl } = presign.data || {};
     if (!url) throw new Error('Failed to obtain upload URL');
-    await axios.put(url, file, { headers: { 'Content-Type': file.type || 'application/octet-stream' } });
+    // include ACL header as presign was generated with public-read
+    await axios.put(url, file, { headers: { 'Content-Type': file.type || 'application/octet-stream', 'x-amz-acl': 'public-read' } });
     return publicUrl;
   };
 
@@ -53,7 +54,7 @@ export default function Certifications({ hideForm=false, hideList=false, horizon
     try {
       let uploaded: string | null = null;
       if (files.length > 0) {
-        try { uploaded = await uploadFile(files[0]); } catch (e) { console.warn('upload failed', e); }
+        uploaded = await uploadFile(files[0]);
       }
       const body = { title, issuer, year: year || null, file: uploaded };
       await axios.post(`${API_BASE}/api/certifications`, body, { headers: { Authorization: `Bearer ${token}` } });
