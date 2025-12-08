@@ -15,7 +15,7 @@ export default function Hero() {
         <p className="lead muted">DevGrid connects your GitHub, verifies accomplishments, and builds a beautiful portfolio that updates automatically — shareable, verifiable, and gamified.</p>
 
         <div className="hero-ctas">
-          <a href="http://localhost:3000/auth/github"><button className="btn primary">Get Started — Connect GitHub</button></a>
+          <a href="http://15.207.111.237:3000/auth/github"><button className="btn primary">Get Started — Connect GitHub</button></a>
           <a href="#how"><button className="btn ghost">How it works</button></a>
         </div>
 
@@ -37,9 +37,7 @@ export default function Hero() {
 
       <div className={`hero-right reveal ${mounted ? 'in delay-2' : ''}`}>
         <div className="mock-card">
-          <div className="lottie-wrap">
-            <lottie-player src="https://assets7.lottiefiles.com/packages/lf20_jbrw3hcz.json" background="transparent" speed="1" loop autoplay style={{width: '100%', height: 220}}></lottie-player>
-          </div>
+          
           <div className="mock-header">
             <div className="pill">Profile</div>
             <div className="badge">Pro</div>

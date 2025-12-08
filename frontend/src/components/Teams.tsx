@@ -14,7 +14,7 @@ export default function Teams({ user }: { user?: any }){
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = token ? await axios.get('http://localhost:3000/api/teams', { headers: { Authorization: `Bearer ${token}` } }) : await axios.get('http://localhost:3000/api/teams');
+      const res = token ? await axios.get('http://15.207.111.237:3000/api/teams', { headers: { Authorization: `Bearer ${token}` } }) : await axios.get('http://15.207.111.237:3000/api/teams');
       setTeams(res.data?.teams || []);
     } catch (e) {
       setTeams([]);

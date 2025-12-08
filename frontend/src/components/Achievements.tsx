@@ -12,7 +12,7 @@ export default function Achievements(){
   const [expanded, setExpanded] = useState<Record<string,boolean>>({});
   const token = localStorage.getItem('token');
 
-  const API_BASE = 'http://localhost:3000';
+  const API_BASE = 'http://15.207.111.237:3000';
   const fetchList = async ()=>{
     try {
       const res = await axios.get(`${API_BASE}/api/achievements`, { headers: { Authorization: `Bearer ${token}` } });
@@ -35,10 +35,14 @@ export default function Achievements(){
   };
 
   const uploadFile = async (file: File) => {
-    const fd = new FormData();
-    fd.append('file', file);
-    const res = await axios.post(`${API_BASE}/api/achievements/upload`, fd, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } });
-    return res.data?.url;
+    // 1) request presigned URL for this file
+    const presign = await axios.post(`${API_BASE}/api/uploads/presign`, { filename: file.name, contentType: file.type, folder: 'achievements' }, { headers: { Authorization: `Bearer ${token}` } });
+    const { url, publicUrl } = presign.data || {};
+    if (!url) throw new Error('Failed to obtain upload URL');
+    // 2) upload directly to S3 using the presigned URL
+    await axios.put(url, file, { headers: { 'Content-Type': file.type || 'application/octet-stream' } });
+    // return the public S3 URL so caller can persist it in DB
+    return publicUrl;
   };
 
   const submit = async ()=>{

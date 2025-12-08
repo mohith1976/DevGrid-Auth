@@ -4,7 +4,11 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // For migrations and introspection we prefer the direct DB connection from
+  // Supabase (DIRECT_URL). The runtime app can keep using the pooled
+  // `DATABASE_URL` (pooler). Set DIRECT_URL in your .env to the "Direct
+  // connection" URI from Supabase and Prisma commands will use it.
+  url      = env("DIRECT_URL")
 }
 
 model User {

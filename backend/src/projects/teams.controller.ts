@@ -25,16 +25,16 @@ export class TeamsController {
     if (!t) return { team: null };
     // enrich members with profile and prisma user info
     const memberIds = (t.members || []).map((m:any) => String(m.userId));
-    const uniqueIds = Array.from(new Set(memberIds));
+    const uniqueIds = Array.from(new Set(memberIds)) as string[];
     const userMap: Record<string, any> = {};
     try {
       if (uniqueIds.length > 0 && this.prisma && (this.prisma as any).user) {
-        const users = await this.prisma.user.findMany({ where: { id: { in: uniqueIds } }, select: { id: true, username: true, githubId: true } });
+        const users = await this.prisma.user.findMany({ where: { id: { in: uniqueIds as string[] } }, select: { id: true, username: true, githubId: true } });
         for (const u of users) userMap[String(u.id)] = u;
       }
     } catch(e) { /* ignore */ }
 
-    const profiles = await Profile.find({ userId: { $in: uniqueIds } }).lean();
+    const profiles = await Profile.find({ userId: { $in: uniqueIds as any } }).lean();
     const profileMap: Record<string, any> = {};
     for (const p of profiles) profileMap[String(p.userId)] = p;
 
@@ -53,7 +53,7 @@ export class TeamsController {
     // attach proposal summary when available
     try {
       if (t.proposalId) {
-        const p = await Proposal.findById(t.proposalId).lean();
+        const p = await Proposal.findById(t.proposalId).lean() as any;
         if (p) t.proposal = { _id: p._id, title: p.title, repoUrl: p.repoUrl, description: p.description, requirements: p.requirements, teamSize: p.teamSize, status: p.status };
       }
     } catch(e) { /* ignore */ }
@@ -111,7 +111,7 @@ export class TeamsController {
 
       try {
         if (t.proposalId) {
-          const p = await Proposal.findById(t.proposalId).lean();
+          const p = await Proposal.findById(t.proposalId).lean() as any;
           if (p) summary.proposal = { _id: p._id, title: p.title, repoUrl: p.repoUrl, description: p.description, requirements: p.requirements, teamSize: p.teamSize, status: p.status };
         }
       } catch (e) { /* ignore */ }

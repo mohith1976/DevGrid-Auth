@@ -121,7 +121,7 @@ export class ProposalsService {
       if (p.applicants && Array.isArray(p.applicants) && p.applicants.length > 0) {
         for (const a of p.applicants) {
           try {
-            const prof = await Profile.findOne({ userId: String(a.userId) }).lean();
+            const prof = await Profile.findOne({ userId: String(a.userId) }).lean() as any;
             if (prof) {
               a.profile = { points: prof.points || 0, level: prof.level || 0, totalCommits: prof.totalCommits || 0 };
             } else {

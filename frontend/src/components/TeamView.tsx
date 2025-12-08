@@ -10,7 +10,7 @@ function TeamView({ teamId, onClose }: { teamId: string, onClose?: ()=>void }){
   async function load(){
     setLoading(true);
     try{
-      const res = await axios.get(`http://localhost:3000/api/teams/${teamId}`);
+      const res = await axios.get(`http://15.207.111.237:3000/api/teams/${teamId}`);
       setTeam(res.data?.team || null);
     } catch(e) { setTeam(null); }
     setLoading(false);
@@ -23,7 +23,7 @@ function TeamView({ teamId, onClose }: { teamId: string, onClose?: ()=>void }){
     setPosting(true);
     try{
       const token = localStorage.getItem('token');
-      const res = await axios.post(`http://localhost:3000/api/teams/${teamId}/message`, { message: msg }, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post(`http://15.207.111.237:3000/api/teams/${teamId}/message`, { message: msg }, { headers: { Authorization: `Bearer ${token}` } });
       if (res.data?.success) {
         // optimistic append the sent message to avoid full reload and UI flicker
         const sent = res.data?.message || { userId: token ? 'you' : 'me', message: msg, createdAt: new Date() };

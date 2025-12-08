@@ -20,7 +20,7 @@ export default function ProposalsList() {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get('http://localhost:3000/api/proposals');
+      const res = await axios.get('http://15.207.111.237:3000/api/proposals');
       setProposals(res.data?.proposals || []);
     } catch (e) {
       setProposals([]);

@@ -21,8 +21,8 @@ async function bootstrap() {
   } catch (e) {
     console.warn('Failed to register uploads static middleware', (e as any)?.message || e);
   }
-  await app.listen(port);
-  console.log(`Backend listening on http://localhost:${port}`);
+  await app.listen(port, '0.0.0.0');
+  console.log(`Backend listening on 0.0.0.0:${port} (public IP may be different)`);
 
   // Initialize the background language queue (worker). Provide ProjectsService instance so
   // worker can call into service methods that update profiles.

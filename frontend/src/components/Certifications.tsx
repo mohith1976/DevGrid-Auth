@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://15.207.111.237:3000';
 
 export default function Certifications({ hideForm=false, hideList=false, horizontal=false }: any) {
   const [list, setList] = useState<any[]>([]);
@@ -39,9 +39,12 @@ export default function Certifications({ hideForm=false, hideList=false, horizon
   }, [dropRef.current]);
 
   const uploadFile = async (file: File) => {
-    const fd = new FormData(); fd.append('file', file);
-    const res = await axios.post(`${API_BASE}/api/certifications/upload`, fd, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } });
-    return res.data?.url;
+    // request presigned URL and upload directly to S3
+    const presign = await axios.post(`${API_BASE}/api/uploads/presign`, { filename: file.name, contentType: file.type, folder: 'certifications' }, { headers: { Authorization: `Bearer ${token}` } });
+    const { url, publicUrl } = presign.data || {};
+    if (!url) throw new Error('Failed to obtain upload URL');
+    await axios.put(url, file, { headers: { 'Content-Type': file.type || 'application/octet-stream' } });
+    return publicUrl;
   };
 
   const submit = async () => {

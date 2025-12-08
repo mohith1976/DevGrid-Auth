@@ -1,8 +1,4 @@
-import { Controller, Get, Post, Req, UploadedFile, UseInterceptors, Body, BadRequestException, Delete, Param } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { join } from 'path';
-import { existsSync, mkdirSync } from 'fs';
+import { Controller, Get, Post, Req, Body, BadRequestException, Delete, Param } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
 import { CertificationsService } from './certifications.service';
 
@@ -46,25 +42,7 @@ export class CertificationsController {
     return { success: ok };
   }
 
-  @Post('upload')
-  @UseInterceptors(FileInterceptor('file', {
-    storage: diskStorage({
-      destination: (req, file, cb) => {
-        const dest = join(process.cwd(), 'backend', 'uploads', 'certifications');
-        if (!existsSync(dest)) mkdirSync(dest, { recursive: true });
-        cb(null, dest);
-      },
-      filename: (req, file, cb) => {
-        const name = Date.now() + '-' + (file.originalname || 'upload');
-        cb(null, name);
-      }
-    }),
-    limits: { fileSize: 15 * 1024 * 1024 }
-  }))
-  async upload(@Req() req:any, @UploadedFile() file: Express.Multer.File) {
-    if (!file) throw new BadRequestException('No file uploaded');
-    const host = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3000}`;
-    const url = `${host}/uploads/certifications/${file.filename}`;
-    return { success: true, url };
-  }
+  // Note: file uploads are handled via presigned S3 URLs. Use the POST /api/uploads/presign endpoint to obtain
+  // a presigned PUT URL from the server, upload directly to S3 from the client, then call POST /api/certifications
+  // with the `file` property containing the S3 URL.
 }
