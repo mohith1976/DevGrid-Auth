@@ -17,7 +17,7 @@ export default function AddProjectModal({ onClose, onSuccess }:{onClose:()=>void
     try{
       const token = localStorage.getItem('token');
       const body = { repoUrl, name, description, readmeUrl, collaborators: collaborators.split(',').map(s=>s.trim()).filter(Boolean) };
-      const res = await axios.post('http://15.207.111.237:3000/api/projects', body, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post('https://api.digitaldevgrid.tech/api/projects', body, { headers: { Authorization: `Bearer ${token}` } });
       if (res.data?.success) {
         if (res.data?.collaboratorWarnings && Array.isArray(res.data.collaboratorWarnings) && res.data.collaboratorWarnings.length > 0) {
           setError(`Ignored collaborators (not found in repo): ${res.data.collaboratorWarnings.join(', ')}`);

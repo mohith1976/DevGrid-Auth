@@ -10,7 +10,7 @@ export default function TeamModal({ teamId, onClose, onSaved }: { teamId: string
     // try to load existing team name
     (async ()=>{
       try{
-        const res = await axios.get(`http://15.207.111.237:3000/api/teams/${teamId}`);
+        const res = await axios.get(`https://api.digitaldevgrid.tech/api/teams/${teamId}`);
         const t = res.data?.team || null;
         if (t && t.name) setName(t.name);
       }catch(e){/* ignore */}
@@ -21,7 +21,7 @@ export default function TeamModal({ teamId, onClose, onSaved }: { teamId: string
     setSaving(true); setError(null);
     try{
       const token = localStorage.getItem('token');
-      const res = await axios.put(`http://15.207.111.237:3000/api/teams/${teamId}`, { name }, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.put(`https://api.digitaldevgrid.tech/api/teams/${teamId}`, { name }, { headers: { Authorization: `Bearer ${token}` } });
       if (res.data?.success) {
         if (onSaved) onSaved(res.data.team);
         onClose();

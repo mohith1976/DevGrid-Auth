@@ -12,7 +12,7 @@ export default function Achievements(){
   const [expanded, setExpanded] = useState<Record<string,boolean>>({});
   const token = localStorage.getItem('token');
 
-  const API_BASE = 'http://15.207.111.237:3000';
+  const API_BASE = 'https://api.digitaldevgrid.tech';
   const fetchList = async ()=>{
     try {
       const res = await axios.get(`${API_BASE}/api/achievements`, { headers: { Authorization: `Bearer ${token}` } });

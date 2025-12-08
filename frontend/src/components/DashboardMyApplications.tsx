@@ -12,9 +12,9 @@ export default function DashboardMyApplications({ user }: { user?: any }){
       const token = localStorage.getItem('token');
       let res;
       if (token) {
-        res = await axios.get('http://15.207.111.237:3000/api/proposals/applications/me', { headers: { Authorization: `Bearer ${token}` } });
+        res = await axios.get('https://api.digitaldevgrid.tech/api/proposals/applications/me', { headers: { Authorization: `Bearer ${token}` } });
       } else if (user && user.id) {
-        res = await axios.get(`http://15.207.111.237:3000/api/proposals/applications/me?userId=${encodeURIComponent(user.id)}`);
+        res = await axios.get(`https://api.digitaldevgrid.tech/api/proposals/applications/me?userId=${encodeURIComponent(user.id)}`);
       } else {
         setError('Sign in to view your applications'); setLoading(false); return;
       }
@@ -57,7 +57,7 @@ export default function DashboardMyApplications({ user }: { user?: any }){
                   const token = localStorage.getItem('token');
                   if (!token) { alert('Sign in to withdraw application'); return; }
                   try {
-                    const res = await axios.post(`http://15.207.111.237:3000/api/proposals/${a.proposalId}/withdraw`, {}, { headers: { Authorization: `Bearer ${token}` } });
+                    const res = await axios.post(`https://api.digitaldevgrid.tech/api/proposals/${a.proposalId}/withdraw`, {}, { headers: { Authorization: `Bearer ${token}` } });
                     if (res?.data?.success) { alert('Application withdrawn'); load(); }
                     else { alert('Withdraw failed: ' + (res?.data?.message || 'unknown')); }
                   } catch (err:any) { alert('Withdraw failed: ' + (err?.response?.data?.message || err?.message || 'unknown')); }

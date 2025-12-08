@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 
-const API_BASE = 'http://15.207.111.237:3000';
+const API_BASE = 'https://api.digitaldevgrid.tech';
 
 export default function Certifications({ hideForm=false, hideList=false, horizontal=false }: any) {
   const [list, setList] = useState<any[]>([]);

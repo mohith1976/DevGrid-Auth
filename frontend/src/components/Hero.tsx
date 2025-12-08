@@ -15,7 +15,7 @@ export default function Hero() {
         <p className="lead muted">DevGrid connects your GitHub, verifies accomplishments, and builds a beautiful portfolio that updates automatically — shareable, verifiable, and gamified.</p>
 
         <div className="hero-ctas">
-          <a href="http://15.207.111.237:3000/auth/github"><button className="btn primary">Get Started — Connect GitHub</button></a>
+          <a href="https://api.digitaldevgrid.tech/auth/github"><button className="btn primary">Get Started — Connect GitHub</button></a>
           <a href="#how"><button className="btn ghost">How it works</button></a>
         </div>
 

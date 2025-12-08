@@ -118,8 +118,8 @@ export default function DeveloperStats(){
       if (!token) return;
       try{
         const [aggRes, reposRes] = await Promise.all([
-          axios.get('http://15.207.111.237:3000/api/projects/profile/aggregate', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('http://15.207.111.237:3000/api/projects/repos', { headers: { Authorization: `Bearer ${token}` } })
+          axios.get('https://api.digitaldevgrid.tech/api/projects/profile/aggregate', { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get('https://api.digitaldevgrid.tech/api/projects/repos', { headers: { Authorization: `Bearer ${token}` } })
         ]);
         setAggregate(aggRes.data?.aggregate || null);
         setRepos(reposRes.data?.repos || []);
@@ -131,8 +131,8 @@ export default function DeveloperStats(){
   // realtime updates
   useEffect(()=>{
     if (!token) return;
-    const sse = new EventSource(`http://15.207.111.237:3000/api/projects/events?token=${token}`);
-    sse.onmessage = (evt) => { try { const p = JSON.parse(evt.data||'{}'); if (p?.source) { axios.get('http://15.207.111.237:3000/api/projects/profile/aggregate', { headers: { Authorization: `Bearer ${token}` } }).then(r=>setAggregate(r.data?.aggregate || null)); } } catch(e){} };
+    const sse = new EventSource(`https://api.digitaldevgrid.tech/api/projects/events?token=${token}`);
+    sse.onmessage = (evt) => { try { const p = JSON.parse(evt.data||'{}'); if (p?.source) { axios.get('https://api.digitaldevgrid.tech/api/projects/profile/aggregate', { headers: { Authorization: `Bearer ${token}` } }).then(r=>setAggregate(r.data?.aggregate || null)); } } catch(e){} };
     sse.onerror = ()=>sse.close();
     return ()=>sse.close();
   }, [token]);

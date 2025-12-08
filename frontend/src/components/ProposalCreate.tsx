@@ -53,7 +53,7 @@ export default function ProposalCreate() {
         requirements: { minRepoCount, minContributions, minLevel, languages: languages.split(',').map(s => s.trim()).filter(Boolean) },
         tags: tags.split(',').map(s => s.trim()).filter(Boolean)
       };
-      const res = await axios.post('http://15.207.111.237:3000/api/proposals/create', payload, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post('https://api.digitaldevgrid.tech/api/proposals/create', payload, { headers: { Authorization: `Bearer ${token}` } });
       if (res.data?.success) {
         const created = res.data.proposal || null;
         setMsg('Proposal created');

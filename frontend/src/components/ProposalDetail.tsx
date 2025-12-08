@@ -20,7 +20,7 @@ export default function ProposalDetail({ id, showOwnerControls }: { id?: string,
   async function load(){
     setLoading(true);
     try{
-      const res = await axios.get(`http://15.207.111.237:3000/api/proposals/${id}`);
+      const res = await axios.get(`https://api.digitaldevgrid.tech/api/proposals/${id}`);
       const p = res.data?.proposal || null;
       setProposal(p);
       // determine current user's application status if token present
@@ -62,7 +62,7 @@ export default function ProposalDetail({ id, showOwnerControls }: { id?: string,
       if (myApplication.status === 'accepted') { setStatusMsg('You are already a member of this proposal'); return; }
     }
     try{
-      const res = await axios.post(`http://15.207.111.237:3000/api/proposals/${id}/apply`, { message }, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post(`https://api.digitaldevgrid.tech/api/proposals/${id}/apply`, { message }, { headers: { Authorization: `Bearer ${token}` } });
       if (res.data?.success) {
         if (res.data?.status === 'rejected') {
           setStatusMsg(`Application auto-rejected: ${res.data?.reason || 'requirements not met'}`);
@@ -86,7 +86,7 @@ export default function ProposalDetail({ id, showOwnerControls }: { id?: string,
     const token = localStorage.getItem('token');
     if (!token) { setStatusMsg('Sign in to withdraw'); return; }
     try{
-      const res = await axios.post(`http://15.207.111.237:3000/api/proposals/${id}/withdraw`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post(`https://api.digitaldevgrid.tech/api/proposals/${id}/withdraw`, {}, { headers: { Authorization: `Bearer ${token}` } });
       if (res?.data?.success) {
         setStatusMsg('Application withdrawn');
         setMyApplication(null);
@@ -99,7 +99,7 @@ export default function ProposalDetail({ id, showOwnerControls }: { id?: string,
     const token = localStorage.getItem('token');
     if (!token) return;
     try{
-      const res = await axios.get(`http://15.207.111.237:3000/api/proposals/${id}/applicants`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get(`https://api.digitaldevgrid.tech/api/proposals/${id}/applicants`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.data?.applicants) setApplicants(res.data.applicants);
     } catch (e) { /* ignore */ }
   }
@@ -108,7 +108,7 @@ export default function ProposalDetail({ id, showOwnerControls }: { id?: string,
     const token = localStorage.getItem('token');
     if (!token) return;
     try{
-      const res = await axios.post(`http://15.207.111.237:3000/api/proposals/${id}/reject`, { applicantId, reason }, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post(`https://api.digitaldevgrid.tech/api/proposals/${id}/reject`, { applicantId, reason }, { headers: { Authorization: `Bearer ${token}` } });
       if (res.data?.success) { setStatusMsg('Applicant rejected'); loadApplicants(); load(); }
       else setStatusMsg('Reject failed: '+(res.data?.message||'unknown'));
     } catch (err:any) { setStatusMsg('Reject failed: '+(err?.response?.data?.message || err?.message || 'unknown')); }
@@ -118,7 +118,7 @@ export default function ProposalDetail({ id, showOwnerControls }: { id?: string,
     const token = localStorage.getItem('token');
     if (!token) return;
     try{
-      const res = await axios.post(`http://15.207.111.237:3000/api/proposals/${id}/accept`, { applicantId }, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post(`https://api.digitaldevgrid.tech/api/proposals/${id}/accept`, { applicantId }, { headers: { Authorization: `Bearer ${token}` } });
       if (res.data?.success) {
         setStatusMsg('Applicant accepted');
         // reload applicants/proposal and wait for canonical state
@@ -201,7 +201,11 @@ export default function ProposalDetail({ id, showOwnerControls }: { id?: string,
         </div>
       )}
       {teamModalOpen && teamToOpen && (
-        <TeamModal teamId={teamToOpen} onClose={()=>{ setTeamModalOpen(false); setTeamToOpen(null); setOpenTeamView(teamToOpen); }} onSaved={(team)=>{ setOpenTeamView(team._id || teamId); }} />
+        <TeamModal
+          teamId={teamToOpen}
+          onClose={() => { setTeamModalOpen(false); setTeamToOpen(null); setOpenTeamView(teamToOpen); }}
+          onSaved={(team) => { setOpenTeamView((team && (team._id || team.id)) || teamToOpen); }}
+        />
       )}
       {openTeamView && (
         <div style={{ marginTop:12 }}>

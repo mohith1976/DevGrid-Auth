@@ -18,11 +18,11 @@ export default function LanguageSnapshot({ token: initialToken }: Props) {
     if (!tok) return;
     setLoading(true);
     try {
-      const res = await axios.get('http://15.207.111.237:3000/api/projects/profile/aggregate', { headers: { Authorization: `Bearer ${tok}` } });
+      const res = await axios.get('https://api.digitaldevgrid.tech/api/projects/profile/aggregate', { headers: { Authorization: `Bearer ${tok}` } });
       setAggregate(res.data?.aggregate || null);
       // fetch owner's repos and compute repo-count per language
       try {
-        const rres = await axios.get('http://15.207.111.237:3000/api/projects/repos', { headers: { Authorization: `Bearer ${tok}` } });
+        const rres = await axios.get('https://api.digitaldevgrid.tech/api/projects/repos', { headers: { Authorization: `Bearer ${tok}` } });
         const repos = rres.data?.repos || [];
         const counts: Record<string, number> = {};
         for (const repo of repos) {
@@ -47,7 +47,7 @@ export default function LanguageSnapshot({ token: initialToken }: Props) {
   useEffect(() => {
     const tok = initialToken ?? localStorage.getItem('token');
     if (!tok) return;
-    const sse = new EventSource(`http://15.207.111.237:3000/api/projects/events?token=${tok}`);
+    const sse = new EventSource(`https://api.digitaldevgrid.tech/api/projects/events?token=${tok}`);
     sse.onmessage = (evt) => {
       try {
         const payload = JSON.parse(evt.data || '{}');

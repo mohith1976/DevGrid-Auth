@@ -30,12 +30,12 @@ export default function ProfilePage({ user, projects, certs, achievements }:
       const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
       try{
         // fetch repos from backend
-        const r = await axios.get('http://15.207.111.237:3000/api/projects/repos', { headers });
+        const r = await axios.get('https://api.digitaldevgrid.tech/api/projects/repos', { headers });
         setRepos(Array.isArray(r.data?.repos) ? r.data.repos : repos);
       } catch(e){ /* ignore */ }
       try{
         // fetch teams
-        const t = await axios.get('http://15.207.111.237:3000/api/teams', { headers });
+        const t = await axios.get('https://api.digitaldevgrid.tech/api/teams', { headers });
         setTeams(t.data?.teams || []);
         // derive notifications from teams (recent messages)
         const notifs: any[] = [];
@@ -45,7 +45,7 @@ export default function ProfilePage({ user, projects, certs, achievements }:
         setNotifications(notifs.sort((a,b)=> new Date(b.when).getTime() - new Date(a.when).getTime()));
       } catch(e){ /* ignore */ }
       try{
-        const pm = await axios.get('http://15.207.111.237:3000/api/projects/profile/me', { headers });
+        const pm = await axios.get('https://api.digitaldevgrid.tech/api/projects/profile/me', { headers });
         setProfileDoc(pm.data?.profile || null);
         setAggregate(pm.data?.aggregate || null);
       } catch(e){ /* ignore */ }

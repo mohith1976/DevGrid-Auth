@@ -8,21 +8,27 @@ export default function ProposalsList() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
+  const API_BASE = 'https://api.digitaldevgrid.tech';
 
   useEffect(() => {
     load();
     const onCreated = (e: any) => { load(); };
+    const onApplied = (e: any) => { load(); };
     window.addEventListener('proposal.created', onCreated as EventListener);
-    return () => { window.removeEventListener('proposal.created', onCreated as EventListener); };
+    window.addEventListener('proposal.applied', onApplied as EventListener);
+    return () => { 
+      window.removeEventListener('proposal.created', onCreated as EventListener);
+      window.removeEventListener('proposal.applied', onApplied as EventListener);
+    };
   }, []);
 
   async function load() {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get('http://15.207.111.237:3000/api/proposals');
+      const res = await axios.get(`${API_BASE}/api/proposals`);
       setProposals(res.data?.proposals || []);
-    } catch (e) {
+    } catch (e:any) {
       setProposals([]);
       setError(e?.response?.data?.message || e?.message || 'Failed to load proposals');
     } finally {
@@ -51,15 +57,15 @@ export default function ProposalsList() {
         </div>
       )}
       <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-        {(proposals || []).filter(p => {
+        {(proposals || []).filter((p:any) => {
           const q = query.trim().toLowerCase();
           if (!q) return true;
           const title = String(p.title || '').toLowerCase();
           const desc = String(p.description || '').toLowerCase();
           const tags = (p.tags || []).join(' ').toLowerCase();
           return title.includes(q) || desc.includes(q) || tags.includes(q);
-        }).map((p) => (
-          <li key={p._id || p.id} style={{ padding: 12, borderRadius: 8, background: 'linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005))', marginBottom: 8 }}>
+        }).map((p:any, i:number) => (
+          <li key={p._id || p.id || i} style={{ padding: 12, borderRadius: 8, background: 'linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005))', marginBottom: 8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontWeight: 800 }}>{p.title}</div>
@@ -67,8 +73,8 @@ export default function ProposalsList() {
                 <div className="small muted">Team size: {p.teamSize} • Reward: {p.rewardPoints} pts • Status: {p.status}</div>
                 <div className="small muted">Min contributions: {(p.requirements?.minContributions ?? p.requirements?.minCommits) || 0}</div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn" onClick={() => setSelected(p._id || p.id)}>View</button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn" onClick={() => setSelected(p._id || p.id || String(i))}>View</button>
               </div>
             </div>
           </li>
