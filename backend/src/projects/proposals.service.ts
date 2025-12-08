@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { MongoService } from '../mongo/mongo.service';
 import { PrismaService } from '../prisma.service';
 import { profileEvents } from '../events/profile-events';
+import axios from 'axios';
+import { decrypt } from '../utils/crypto.util';
 
 @Injectable()
 export class ProposalsService {
@@ -54,11 +56,68 @@ export class ProposalsService {
 
     const repoPath = extractRepoPath(repoNorm);
     if (!repoPath) throw new Error('Invalid repository URL');
-    // look up Project owned by this user that matches the repo path
-    const escPath = repoPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const matchRe = new RegExp(escPath, 'i');
-    const owned = await Project.findOne({ userId: ownerId, repoUrl: { $regex: matchRe } }).lean();
-    if (!owned) throw new Error('Repository not found in your projects. Please use a repository you own or ask the owner to create the proposal.');
+
+    // Verify repository exists on GitHub and that the creating user is the owner or a confirmed collaborator.
+    try {
+      const pgUser = await this.prisma.user.findUnique({ where: { id: ownerId } });
+      let token: string | undefined;
+      if (pgUser?.githubAccessToken) {
+        try { token = decrypt(pgUser.githubAccessToken); } catch (e:any) { this.logger.warn('Failed to decrypt github token for proposals'); }
+      }
+      const headers: any = { Accept: 'application/vnd.github.v3+json' };
+      if (token) headers.Authorization = `token ${token}`;
+
+      const [ownerFromUrl, repoFromUrl] = repoPath.split('/');
+      const repoApi = `https://api.github.com/repos/${ownerFromUrl}/${repoFromUrl}`;
+      let repoData: any = null;
+      try {
+        const res = await axios.get(repoApi, { headers, validateStatus: () => true });
+        if (res.status !== 200 || !res.data) {
+          if (res.status === 404) throw new Error(`Repository not found: ${repoPath}`);
+          if (res.status === 401 || res.status === 403) throw new Error('Unauthorized to access repository. Ensure user connected GitHub and granted repo access.');
+          throw new Error('Repository not accessible');
+        }
+        repoData = res.data;
+      } catch (e:any) {
+        const status = e?.response?.status;
+        if (status === 404) throw new Error(`Repository not found: ${repoPath}`);
+        throw e;
+      }
+
+      const repoOwnerLogin = (repoData.owner?.login || '').toLowerCase();
+      const submitterLogin = (pgUser?.username || '').toLowerCase();
+
+      if (repoOwnerLogin !== submitterLogin) {
+        // try public contributors list first
+        let isCollaborator = false;
+        try {
+          const contribRes = await axios.get(`${repoApi}/contributors?per_page=100`, { headers, validateStatus: () => true });
+          if (contribRes.status === 200 && Array.isArray(contribRes.data)) {
+            const lowerContribs = contribRes.data.map((c:any) => String(c.login).toLowerCase());
+            if (lowerContribs.includes(submitterLogin)) isCollaborator = true;
+          }
+        } catch (e) {
+          // ignore contributor lookup errors
+        }
+
+        // if token available, check collaborators endpoint for definitive answer
+        if (!isCollaborator && token && pgUser?.username) {
+          try {
+            const coll = await axios.get(`${repoApi}/collaborators/${pgUser.username}`, { headers, validateStatus: () => true });
+            if (coll.status === 204 || coll.status === 200) isCollaborator = true;
+          } catch (e) {
+            // ignore collaborator check failures
+          }
+        }
+
+        if (!isCollaborator) {
+          throw new Error(`Repository ownership mismatch: repository ${repoPath} is owned by "${repoOwnerLogin}", but your connected GitHub username is "${submitterLogin}". Please add yourself as a collaborator (or submit a repository you own) and try again.`);
+        }
+        this.logger.log(`User ${submitterLogin} is a collaborator on ${repoPath} (not owner).`);
+      }
+    } catch (e:any) {
+      throw e;
+    }
     // use case-insensitive exact-match check to find existing proposals even if stored casing differs
     const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const titleRe = new RegExp(`^${esc(titleNorm)}$`, 'i');
