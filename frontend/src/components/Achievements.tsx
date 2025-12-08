@@ -40,8 +40,7 @@ export default function Achievements(){
     const { url, publicUrl } = presign.data || {};
     if (!url) throw new Error('Failed to obtain upload URL');
     // 2) upload directly to S3 using the presigned URL
-    // include x-amz-acl header because the presign was generated with ACL: 'public-read'
-    await axios.put(url, file, { headers: { 'Content-Type': file.type || 'application/octet-stream', 'x-amz-acl': 'public-read' } });
+    await axios.put(url, file, { headers: { 'Content-Type': file.type || 'application/octet-stream' } });
     // return the public S3 URL so caller can persist it in DB
     return publicUrl;
   };
