@@ -40,11 +40,13 @@ const fs = require('fs');
 
     const s3 = new S3Client({ region, credentials: { accessKeyId: process.env.AWS_ACCESS_KEY || '', secretAccessKey: process.env.AWS_SECRET_KEY || '' } });
 
+    // Note: S3 CORS AllowedMethods does not accept 'OPTIONS' as a method value.
+    // Browsers send OPTIONS preflight automatically; include the actual methods you will use.
     const corsConfig = {
       CORSRules: [
         {
           AllowedOrigins: allowedOrigins,
-          AllowedMethods: ['GET','PUT','POST','HEAD','OPTIONS'],
+          AllowedMethods: ['GET','PUT','POST','HEAD'],
           AllowedHeaders: ['*'],
           ExposeHeaders: [],
           MaxAgeSeconds: 3000,
