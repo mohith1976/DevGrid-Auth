@@ -269,23 +269,22 @@ export class ProposalsService {
   }
 
   // validate applicant meets requirements
+  // NOTE: This variant uses only the applicant's GitHub account to compute
+  // repoCount, totalContributions and language matches. It ignores any local
+  // DB `projects` or `profile` values to avoid stale/missing data causing
+  // auto-rejection.
   private async validateApplicantRequirements(userId: string, requirements: any) {
-    const Project = this.mongo.getProjectModel();
-    const Profile = this.mongo.getProfileModel();
-    const profile = await Profile.findOne({ userId }).lean() as any;
-    let projects = await Project.find({ userId, verified: true }).lean() as any[];
+    let repoCount = 0;
+    let totalContributions = 0;
+    let level = 0;
 
-    let repoCount = projects.length;
-    // contributions is the stored approximation of GitHub contributions/commits
-    let totalContributions = profile?.totalCommits || projects.reduce((s:any,p:any)=>s + (p.commitsCount || 0), 0);
-
-    // Try to fetch GitHub metrics (best-effort) when we have a prisma user record.
-    // We'll keep DB values as the baseline and take the maximum of DB and GitHub
-    // values for `repoCount` and `totalContributions` so live GitHub data can
-    // override stale/absent DB data safely.
     try {
       const pgUser = await this.prisma.user.findUnique({ where: { id: userId } });
-      if (pgUser) {
+      if (!pgUser || !pgUser.username) {
+        this.logger.debug('Applicant has no linked GitHub username; failing requirements by default');
+        // proceed with zeros (will likely fail requirements)
+      } else {
+        const login = pgUser.username;
         let token: string | undefined;
         if (pgUser.githubAccessToken) {
           try { token = decrypt(pgUser.githubAccessToken); } catch (e:any) { this.logger.warn('Failed to decrypt token for applicant validation'); }
@@ -293,41 +292,92 @@ export class ProposalsService {
         const headers: any = { Accept: 'application/vnd.github.v3+json' };
         if (token) headers.Authorization = `token ${token}`;
 
-        const login = pgUser.username;
-        if (login) {
-          try {
-            // fetch repos for this user (owner affiliation preferred when token present)
-            const url = token ? 'https://api.github.com/user/repos?per_page=100&affiliation=owner' : `https://api.github.com/users/${login}/repos?per_page=100`;
-            const axiosLib = (await import('axios')).default;
-            const reposRes = await axiosLib.get(url, { headers, validateStatus: () => true });
-            if (reposRes && reposRes.status === 200 && Array.isArray(reposRes.data)) {
-              const ghRepoCount = (reposRes.data || []).length;
-              // sum contributions for this user across returned repos (best-effort)
-              let contribSum = 0;
-              for (const r of (reposRes.data || []).slice(0, 100)) {
-                try {
-                  const owner = r.owner?.login || login;
-                  const name = r.name;
-                  const contrib = await axiosLib.get(`https://api.github.com/repos/${owner}/${name}/contributors?per_page=100`, { headers, validateStatus: () => true });
-                  if (contrib && contrib.status === 200 && Array.isArray(contrib.data)) {
-                    const me = (contrib.data || []).find((c:any) => String(c.login).toLowerCase() === String(login).toLowerCase());
-                    if (me && typeof me.contributions === 'number') contribSum += me.contributions;
-                  }
-                } catch (e) { /* ignore per-repo contributor lookup failures */ }
+        try {
+          const url = token ? 'https://api.github.com/user/repos?per_page=100&affiliation=owner' : `https://api.github.com/users/${login}/repos?per_page=100&type=owner`;
+          const reposRes = await axios.get(url, { headers, validateStatus: () => true });
+          if (reposRes && reposRes.status === 200 && Array.isArray(reposRes.data)) {
+            const repos = reposRes.data.slice(0, 100);
+            repoCount = repos.length;
+
+            // compute contributions: best-effort by summing per-repo contributor entry
+            let contribSum = 0;
+            for (const r of repos) {
+              try {
+                // attempt to get contributors list; many repos will allow public access
+                const owner = r.owner?.login || login;
+                const name = r.name;
+                const contribRes = await axios.get(`https://api.github.com/repos/${owner}/${name}/contributors?per_page=100`, { headers, validateStatus: () => true });
+                if (contribRes && contribRes.status === 200 && Array.isArray(contribRes.data)) {
+                  const me = contribRes.data.find((c:any) => String(c.login).toLowerCase() === String(login).toLowerCase());
+                  if (me && typeof me.contributions === 'number') contribSum += me.contributions;
+                }
+              } catch (e) {
+                // ignore per-repo failures
               }
-              // merge by taking the maximum to prefer the larger (more up-to-date) value
-              repoCount = Math.max(repoCount, ghRepoCount || 0);
-              totalContributions = Math.max(totalContributions || 0, contribSum || 0);
-              this.logger.debug(`Applicant validation merged DB/GitHub metrics: repoCount(db=${projects.length}) -> ${repoCount}, totalContributions(db=${profile?.totalCommits || 0}) -> ${totalContributions}`);
             }
-          } catch (e:any) {
-            this.logger.warn('Failed to fetch GitHub repos for applicant validation', (e as any)?.message || e);
+            totalContributions = contribSum;
+
+            // language match: use repo.language (primary) as a lightweight check
+            // we'll count repos whose primary language matches any required language
           }
+        } catch (e:any) {
+          this.logger.warn('Failed to fetch GitHub repos for applicant validation', (e as any)?.message || e);
         }
       }
     } catch (e:any) {
-      this.logger.warn('Applicant GitHub merge fallback failed', (e as any)?.message || e);
+      this.logger.warn('Applicant GitHub-only validation failed', (e as any)?.message || e);
     }
+
+    // languages requirement: we cannot rely on local project language maps anymore.
+    // We'll re-fetch the repo list (lightweight) and check the `language` field
+    // for each repo to count matching languages.
+    let langMatchCount = 0;
+    if (requirements?.languages && Array.isArray(requirements.languages) && requirements.languages.length > 0) {
+      try {
+        const pgUser = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (pgUser && pgUser.username) {
+          const login = pgUser.username;
+          let token: string | undefined;
+          if (pgUser.githubAccessToken) {
+            try { token = decrypt(pgUser.githubAccessToken); } catch (e:any) { /* ignore */ }
+          }
+          const headers: any = { Accept: 'application/vnd.github.v3+json' };
+          if (token) headers.Authorization = `token ${token}`;
+          const url = token ? 'https://api.github.com/user/repos?per_page=100&affiliation=owner' : `https://api.github.com/users/${login}/repos?per_page=100&type=owner`;
+          const reposRes = await axios.get(url, { headers, validateStatus: () => true });
+          if (reposRes && reposRes.status === 200 && Array.isArray(reposRes.data)) {
+            const repos = reposRes.data.slice(0, 100);
+            for (const r of repos) {
+              const primary = (r.language || '') ? String(r.language).toLowerCase() : '';
+              for (const L of requirements.languages) {
+                if (primary && primary === String(L).toLowerCase()) { langMatchCount++; break; }
+              }
+            }
+          }
+        }
+      } catch (e:any) {
+        this.logger.warn('Failed to compute language matches from GitHub', (e as any)?.message || e);
+      }
+    }
+
+    const meetsRepoCount = !requirements?.minRepoCount || repoCount >= Number(requirements.minRepoCount || 0);
+    const minContribReq = Number(requirements?.minContributions ?? requirements?.minCommits ?? 0);
+    const meetsContributions = !minContribReq || totalContributions >= minContribReq;
+    const meetsLevel = !requirements?.minLevel || level >= Number(requirements.minLevel || 0);
+    const meetsLangs = !(requirements?.languages && requirements.languages.length > 0) || langMatchCount >= 1;
+
+    this.logger.debug(`Applicant GitHub-only validation: repoCount=${repoCount}, totalContributions=${totalContributions}, langMatchCount=${langMatchCount}`);
+
+    return {
+      meetsAll: meetsRepoCount && meetsContributions && meetsLevel && meetsLangs,
+      meetsCore: meetsRepoCount && meetsContributions && meetsLevel,
+      meetsRepoCount,
+      meetsContributions,
+      meetsLevel,
+      meetsLangs,
+      details: { repoCount, totalContributions, level, langMatchCount }
+    };
+  }
     const level = profile?.level || 0;
 
     // languages requirement: check number of repos matching required languages
