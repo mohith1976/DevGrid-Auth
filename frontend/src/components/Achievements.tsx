@@ -27,7 +27,13 @@ export default function Achievements(){
     } catch (e) { /* ignore */ }
   };
 
-  useEffect(()=>{ fetchList(); fetchCerts(); }, []);
+  useEffect(()=>{
+    fetchList();
+    fetchCerts();
+    const onCertsUpdate = () => fetchCerts();
+    window.addEventListener('certifications:updated', onCertsUpdate as EventListener);
+    return () => window.removeEventListener('certifications:updated', onCertsUpdate as EventListener);
+  }, []);
 
   const onFiles = (ev: React.ChangeEvent<HTMLInputElement>)=>{
     const f = ev.target.files ? Array.from(ev.target.files) : [];
