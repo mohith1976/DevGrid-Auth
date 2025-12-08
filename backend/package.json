@@ -6,6 +6,7 @@
     "start": "ts-node -r tsconfig-paths/register src/main.ts",
     "build": "tsc -p tsconfig.json",
     "start:dev": "ts-node-dev --respawn --transpile-only src/main.ts",
+    "start:prod": "node dist/main.js",
     "prisma:pull-direct": "node ./scripts/prisma-direct.js",
     "prisma:migrate-direct": "node ./scripts/prisma-migrate-direct.js"
   },
