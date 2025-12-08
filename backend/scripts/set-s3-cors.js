@@ -31,8 +31,14 @@ const fs = require('fs');
     const originsArg = process.argv[2];
     const defaultOrigins = [];
     if (process.env.FRONTEND_URL) defaultOrigins.push(process.env.FRONTEND_URL);
-    // add the public IP commonly used in this project as fallback
+    // add common fallbacks: EC2 IP (http + https) and common production frontend origins
+    // Note: CORS origins must include the exact scheme. We include both schemes for the IP
+    // in case the site is accessed via http or https during testing.
     defaultOrigins.push('http://15.207.111.237');
+    defaultOrigins.push('https://15.207.111.237');
+    // include production apex and www domains as safe defaults (deduped later)
+    defaultOrigins.push('https://digitaldevgrid.tech');
+    defaultOrigins.push('https://www.digitaldevgrid.tech');
     const allowedOrigins = originsArg ? originsArg.split(',') : Array.from(new Set(defaultOrigins.filter(Boolean)));
 
     console.log('Setting CORS on bucket', bucket, 'region', region);
