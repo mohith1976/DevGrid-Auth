@@ -16,7 +16,9 @@ export class UploadsController {
     const key = `${folder}/${Date.now()}-${keySafe}`;
 
     const s3 = new S3Client({ region, credentials: { accessKeyId: process.env.AWS_ACCESS_KEY || '', secretAccessKey: process.env.AWS_SECRET_KEY || '' } });
-    const cmd = new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: contentType, ACL: 'public-read' });
+    // Do not set ACL here. Many buckets have Object Ownership -> Bucket owner enforced
+    // which disallows ACLs. Rely on bucket policy for public access if needed.
+    const cmd = new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: contentType });
     const url = await getSignedUrl(s3, cmd, { expiresIn: 900 });
     const publicUrl = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
     return { url, key, publicUrl, expiresIn: 900 };

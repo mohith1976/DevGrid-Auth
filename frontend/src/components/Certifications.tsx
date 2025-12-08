@@ -44,7 +44,7 @@ export default function Certifications({ hideForm=false, hideList=false, horizon
     const { url, publicUrl } = presign.data || {};
     if (!url) throw new Error('Failed to obtain upload URL');
     // include ACL header as presign was generated with public-read
-    await axios.put(url, file, { headers: { 'Content-Type': file.type || 'application/octet-stream', 'x-amz-acl': 'public-read' } });
+    await axios.put(url, file, { headers: { 'Content-Type': file.type || 'application/octet-stream' } });
     return publicUrl;
   };
 
