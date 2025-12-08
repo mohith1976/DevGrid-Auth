@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ProjectsController } from './projects.controller';
+import { DebugController } from './debug.controller';
 import { ProposalsController } from './proposals.controller';
 import { PublicProposalsController } from './public-proposals.controller';
 import { TeamsController } from './teams.controller';
@@ -14,7 +15,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
   imports: [PrismaModule],
-  controllers: [ProjectsController, ProposalsController, PublicProposalsController, TeamsController, AchievementsController, CertificationsController],
+  controllers: [ProjectsController, ProposalsController, PublicProposalsController, TeamsController, AchievementsController, CertificationsController, DebugController],
   providers: [ProjectsService, MongoService, ProposalsService, AchievementsService, CertificationsService],
   exports: [ProjectsService],
 })

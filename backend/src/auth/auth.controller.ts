@@ -13,7 +13,7 @@ export class AuthController {
   @Get('github')
   redirectToGithub(@Res() res: any) {
     const clientId = process.env.GITHUB_CLIENT_ID;
-    const redirectUri = process.env.GITHUB_CALLBACK_URL || 'http://localhost:3000/auth/github/callback';
+    const redirectUri = process.env.GITHUB_CALLBACK_URL || 'http://15.207.111.237:3000/auth/github/callback';
     const scope = 'read:user user:email';
     const url = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
       redirectUri,

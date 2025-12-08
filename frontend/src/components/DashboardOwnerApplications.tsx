@@ -18,10 +18,10 @@ export default function DashboardOwnerApplications({ user }: { user?: any }){
       const token = localStorage.getItem('token');
       let res;
       if (token) {
-        res = await axios.get('http://localhost:3000/api/proposals/owner', { headers: { Authorization: `Bearer ${token}` } });
+        res = await axios.get('http://15.207.111.237:3000/api/proposals/owner', { headers: { Authorization: `Bearer ${token}` } });
       } else if (user && user.id) {
         // dev fallback: allow fetching by userId query when token not available
-        res = await axios.get(`http://localhost:3000/api/proposals/owner?userId=${encodeURIComponent(user.id)}`);
+        res = await axios.get(`http://15.207.111.237:3000/api/proposals/owner?userId=${encodeURIComponent(user.id)}`);
       } else {
         setError('Sign in to view your proposals'); setLoading(false); return;
       }
@@ -90,7 +90,7 @@ export default function DashboardOwnerApplications({ user }: { user?: any }){
                                 onClick={async () => {
                                   const token = localStorage.getItem('token');
                                   try {
-                                    const res = await axios.post(`http://localhost:3000/api/proposals/${p._id}/accept`, { applicantId: a.userId }, { headers: { Authorization: `Bearer ${token}` } });
+                                    const res = await axios.post(`http://15.207.111.237:3000/api/proposals/${p._id}/accept`, { applicantId: a.userId }, { headers: { Authorization: `Bearer ${token}` } });
                                     if (res?.data && res.data.success === false) {
                                       const msg = res.data.message || 'Failed to accept';
                                       if (msg.includes('Team is full') || msg.includes('full')) {
@@ -104,7 +104,7 @@ export default function DashboardOwnerApplications({ user }: { user?: any }){
                                     let teamId = res?.data?.teamId || null;
                                     if (!teamId) {
                                       try {
-                                        const r = await axios.get(`http://localhost:3000/api/proposals/${p._id}`, { headers: { Authorization: `Bearer ${token}` } });
+                                        const r = await axios.get(`http://15.207.111.237:3000/api/proposals/${p._id}`, { headers: { Authorization: `Bearer ${token}` } });
                                         teamId = r.data?.team?.teamId || r.data?.teamId || r.data?.team?._id || null;
                                       } catch (e) { teamId = null; }
                                     }
@@ -152,7 +152,7 @@ export default function DashboardOwnerApplications({ user }: { user?: any }){
               <button className="btn" onClick={async ()=>{
                 try {
                   const token = localStorage.getItem('token');
-                  await axios.post(`http://localhost:3000/api/proposals/${confirmReject.proposalId}/reject`, { applicantId: confirmReject.applicantId }, { headers: { Authorization: `Bearer ${token}` } });
+                  await axios.post(`http://15.207.111.237:3000/api/proposals/${confirmReject.proposalId}/reject`, { applicantId: confirmReject.applicantId }, { headers: { Authorization: `Bearer ${token}` } });
                 } catch (e:any) {
                   // ignore
                 }

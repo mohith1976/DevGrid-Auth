@@ -64,7 +64,7 @@ export default function App() {
     if (stored) {
       setLoading(true);
       axios
-        .get('http://localhost:3000/auth/me', { headers: { Authorization: `Bearer ${stored}` } })
+        .get('http://15.207.111.237:3000/auth/me', { headers: { Authorization: `Bearer ${stored}` } })
         .then((res) => {
           setUser(res.data.user);
         })

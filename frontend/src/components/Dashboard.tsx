@@ -71,10 +71,10 @@ export default function Dashboard({ user }: { user: User }){
     const token = localStorage.getItem('token');
     try {
       const [pRes, statsRes, reposRes, teamsRes] = await Promise.all([
-        axios.get('http://localhost:3000/api/projects', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('http://localhost:3000/api/projects/profile/me', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('http://localhost:3000/api/projects/repos', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('http://localhost:3000/api/teams', { headers: { Authorization: `Bearer ${token}` } })
+        axios.get('http://15.207.111.237:3000/api/projects', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('http://15.207.111.237:3000/api/projects/profile/me', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('http://15.207.111.237:3000/api/projects/repos', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('http://15.207.111.237:3000/api/teams', { headers: { Authorization: `Bearer ${token}` } })
       ]);
       setProjects(pRes.data || []);
       setProfile(statsRes.data?.profile || { points: 0, contributionCount: 0, level: 1 });
@@ -95,7 +95,7 @@ export default function Dashboard({ user }: { user: User }){
     const token = localStorage.getItem('token');
     if (!token) return;
     try {
-      const res = await axios.get('http://localhost:3000/api/projects/profile/aggregate', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get('http://15.207.111.237:3000/api/projects/profile/aggregate', { headers: { Authorization: `Bearer ${token}` } });
       setAggregate(res.data?.aggregate || null);
     } catch (e) { /* ignore */ }
   };
@@ -103,7 +103,7 @@ export default function Dashboard({ user }: { user: User }){
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
-    const sse = new EventSource(`http://localhost:3000/api/projects/events?token=${token}`);
+    const sse = new EventSource(`http://15.207.111.237:3000/api/projects/events?token=${token}`);
     sse.onmessage = (evt) => {
       try {
         const payload = JSON.parse(evt.data || '{}');
@@ -252,7 +252,7 @@ export default function Dashboard({ user }: { user: User }){
                                   } catch (e:any){ setToast({ msg: 'Publish failed: '+(e?.response?.data?.message || e?.message || 'unknown'), type: 'error' }); }
                                 }}>Publish</button>
                               ) : (
-                                <button className="btn ghost small" onClick={async ()=>{ try { const token = localStorage.getItem('token'); const res = await axios.post('http://localhost:3000/api/projects/unpublish',{ repo: repoUrl }, { headers: { Authorization: `Bearer ${token}` } }); if (res.data?.success) { if (res.data.profile) setProfile(res.data.profile); setProjects((prev)=>{ const next = prev.filter((p:any)=>!String(p.repoUrl||'').toLowerCase().includes((r.full||'').toLowerCase())); updateActivities(next); return next; }); setToast({ msg: 'Unpublished', type: 'success' }); } else setToast({ msg: 'Unpublish failed: '+(res.data?.message||'unknown'), type: 'error' }); } catch (e:any){ setToast({ msg: 'Unpublish failed: '+(e?.response?.data?.message || e?.message || 'unknown'), type: 'error' }); } }}>Unpublish</button>
+                                <button className="btn ghost small" onClick={async ()=>{ try { const token = localStorage.getItem('token'); const res = await axios.post('http://15.207.111.237:3000/api/projects/unpublish',{ repo: repoUrl }, { headers: { Authorization: `Bearer ${token}` } }); if (res.data?.success) { if (res.data.profile) setProfile(res.data.profile); setProjects((prev)=>{ const next = prev.filter((p:any)=>!String(p.repoUrl||'').toLowerCase().includes((r.full||'').toLowerCase())); updateActivities(next); return next; }); setToast({ msg: 'Unpublished', type: 'success' }); } else setToast({ msg: 'Unpublish failed: '+(res.data?.message||'unknown'), type: 'error' }); } catch (e:any){ setToast({ msg: 'Unpublish failed: '+(e?.response?.data?.message || e?.message || 'unknown'), type: 'error' }); } }}>Unpublish</button>
                               )}
                             </div>
                           </div>
@@ -380,7 +380,7 @@ export default function Dashboard({ user }: { user: User }){
         try {
           const repoUrl = confirmModal?.repo?.repoUrl;
           const token = localStorage.getItem('token');
-          const res = await axios.post('http://localhost:3000/api/projects/publish',{ repo: repoUrl, includeCollaborators: include }, { headers: { Authorization: `Bearer ${token}` } });
+          const res = await axios.post('http://15.207.111.237:3000/api/projects/publish',{ repo: repoUrl, includeCollaborators: include }, { headers: { Authorization: `Bearer ${token}` } });
           if (res.data?.success) {
             // if the API returned an updated profile, use it to update UI immediately
             if (res.data.profile) setProfile(res.data.profile);
