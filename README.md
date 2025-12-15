@@ -1,26 +1,84 @@
 # DevGrid
 
-DevGrid is a developer portfolio and collaboration platform that helps engineers showcase their work, visualize contributions, track achievements/certifications, and collaborate on team projects. It integrates with GitHub to aggregate language usage, repositories, commits, pull requests, and open-source activity, and provides a modern UI for personal portfolios and dashboards.
+DevGrid is a **developer collaboration and project-building platform** that connects developers based on skills, GitHub achievements, and project requirements.  
+It is a **full ecosystem** where developers can propose projects, form teams, collaborate, communicate, and contribute to open-source together.  
 
-## What Is DevGrid
-- A clean portfolio canvas to present a developer’s profile, skills, projects, and stats.
-- A dashboard to monitor contributions, PR trends, open‑source projects, and team activity.
-- Backend services aggregate GitHub data, cache results, and expose APIs for the frontend.
-- Achievements and certifications modules to highlight milestones and credentials.
+---
 
-## Features Built So Far
-- Portfolio page: Hero, Skills snapshot (donut chart), Contribution summary, Projects grid, Achievements, Certifications, Team projects, Notifications.
-- Dashboard: Developer stats with modern UI; language distribution; open‑source contributions view.
-- Backend aggregation: Per‑repository language counts, total commits, PRs, followers, starred repos, open‑source contributions.
-- Caching: Profile aggregates stored to avoid hitting GitHub on every visit; force refresh via query flag.
-- Team modules: List teams, members, recent notifications derived from team messages.
+## Core Concept of DevGrid
 
-## Tech Stack
-- Frontend: React + Vite + TypeScript.
-- Backend: NestJS (TypeScript), Axios for GitHub API, Prisma (for DB schema), Mongoose (if applicable in services), Express/Nest controllers.
-- Database: PostgreSQL (Prisma) and/or MongoDB (if used in specific services).
-- Infrastructure & Workers: Docker, Redis, Bull queue for background aggregation tasks.
-- Tooling: ESLint/TSConfig, esbuild/Vite dev server.
+### 1. Project Proposals by Developers
+Any developer can create a **project proposal** with detailed entry requirements such as:
+
+- Minimum number of repositories  
+- Minimum GitHub contributions  
+- Minimum GitHub profile level (DevGrid score)  
+- Required programming languages or tech-stack proficiency  
+- Experience, badges, or certifications  
+
+This ensures that people joining the project match the expected skill level.
+
+---
+
+### 2. Developer Matching System
+Users browsing proposals can **apply to join** only if their profile matches the requirements.  
+
+DevGrid automatically checks:
+
+- GitHub stats  
+- Contribution history  
+- Language proficiency  
+- Reputation / DevGrid profile level  
+- Achievements and certifications  
+
+If a user meets the criteria, their application is sent to the **project owner**.
+
+---
+
+### 3. Application Approval System
+The project owner can:
+
+- Accept  
+- Reject  
+
+If accepted, DevGrid automatically:
+
+- Creates a project team  
+- Creates a shared workspace for collaboration  
+- Links the team to their GitHub repo (or auto-creates one)  
+
+---
+
+### 4. Team Workspace & Collaboration
+Inside the team workspace, members can:
+
+- Chat in real-time  
+- Assign tasks and manage issues  
+- Share documents and resources  
+- Track contributions and code reviews  
+- Collaborate on GitHub repository together  
+
+---
+
+### 5. Open-Source Contribution Pool
+Teams can publish their projects to the **DevGrid Open Source Pool**, where:
+
+- Other developers can browse and clone repositories  
+- Contribute to existing projects  
+- Learn from real-team collaborations  
+- Improve their profile level by contributing  
+
+This creates a **community-driven ecosystem** of open-source collaboration.
+
+---
+## Tech Stack & Deployment
+
+- **Frontend:** React, TypeScript, Vite  
+- **Backend:** Node.js, Express, NestJS  
+- **Database:** PostgreSQL (Prisma, Supabase), MongoDB Atlas  
+- **Caching & Queues:** Redis (local), Redis Cloud (Upstash), Bull  
+- **Infrastructure & Deployment:** Docker, AWS EC2, AWS S3, AWS IAM, Vercel (frontend with domain digitaldevgrid.tech)  
+- **ORM & Tools:** Prisma
 
 ## Technology Usage Breakdown
 - React + Vite: Fast frontend development, modular components (Portfolio, Dashboard, LanguageSnapshot).
