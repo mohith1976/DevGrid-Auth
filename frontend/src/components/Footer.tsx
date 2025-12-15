@@ -7,18 +7,15 @@ export default function Footer() {
         <div className="foot-grid">
           <div>
             <div className="logo small">DG</div>
-            <p className="muted small">DevGrid — Verified developer portfolios</p>
+            <p className="muted small">DevGrid — For Developers</p>
           </div>
-          <div>
-            <h4>Product</h4>
-            <div className="muted small">Features • Pricing • Docs</div>
-          </div>
+          
           <div>
             <h4>Company</h4>
             <div className="muted small">About • Blog • Careers</div>
           </div>
         </div>
-        <div className="foot-bottom muted small">© {new Date().getFullYear()} DevGrid. Built with ❤️.</div>
+        <div className="foot-bottom muted small">© {new Date().getFullYear()} Mohith Nakka.</div>
       </div>
     </footer>
   );
