@@ -160,8 +160,8 @@ export default function Dashboard({ user }: { user: User }){
           <a className={`nav-item ${active==='OwnerApps' ? 'active':''}`} onClick={() => setActive('OwnerApps')}><span className="nav-icon"><IconProposals /></span> Proposals</a>
           <a className={`nav-item ${active==='MyApps' ? 'active':''}`} onClick={() => setActive('MyApps')}><span className="nav-icon"><IconProposals /></span> My Applications</a>
           <a className={`nav-item ${active==='Teams' ? 'active':''}`} onClick={() => setActive('Teams')}><span className="nav-icon"><IconTeams /></span> Teams</a>
-          <a className={`nav-item ${active==='Stats' ? 'active':''}`} onClick={() => setActive('Stats')}><span className="nav-icon"><IconStats /></span> Stats</a>
-          {/* Settings removed */}
+        
+          
         </nav>
       </aside>
 
