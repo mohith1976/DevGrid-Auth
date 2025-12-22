@@ -3,8 +3,7 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import * as express from 'express';
 import { AppModule } from './app.module';
-import { initLanguageQueue } from './queues/languageQueue';
-import { ProjectsService } from './projects/projects.service';
+// Language queue (Redis) removed
 import { ProposalsService } from './projects/proposals.service';
 
 async function bootstrap() {
@@ -24,15 +23,7 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
   console.log(`Backend listening on 0.0.0.0:${port} (public IP may be different)`);
 
-  // Initialize the background language queue (worker). Provide ProjectsService instance so
-  // worker can call into service methods that update profiles.
-  try {
-    const projectsSvc = app.get(ProjectsService);
-    initLanguageQueue(projectsSvc);
-    console.log('Language aggregation queue initialized');
-  } catch (e) {
-    console.warn('Failed to initialize language queue', (e as any)?.message || e);
-  }
+  // Language aggregation queue removed (Redis dependency eliminated)
   // Run proposals cleanup on startup and schedule daily cleanup
   try {
     const proposalsSvc = app.get(ProposalsService);

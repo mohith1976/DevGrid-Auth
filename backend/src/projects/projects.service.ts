@@ -3,7 +3,6 @@ import { MongoService } from '../mongo/mongo.service';
 import axios from 'axios';
 import { PrismaService } from '../prisma.service';
 import { decrypt } from '../utils/crypto.util';
-import { addLanguageJob } from '../queues/languageQueue';
 import { profileEvents } from '../events/profile-events';
 
 @Injectable()
@@ -119,12 +118,8 @@ export class ProjectsService {
     const payload = { userId: uid, profile: prof?.toObject ? prof.toObject() : prof, source: 'recalc' };
     profileEvents.emit('profile.updated', payload);
 
-    // enqueue a background job to compute account-level languages (finer-grained) and update profile asynchronously
-    try {
-      addLanguageJob(uid);
-    } catch (e: any) {
-      this.logger.warn('Failed to enqueue language aggregation job', (e as any)?.message || e);
-    }
+    // Background language aggregation (was previously enqueued via Redis/Bull).
+    // That worker has been removed; aggregation runs on-demand via `performAccountLanguageAggregation`.
 
     return prof;
   }
