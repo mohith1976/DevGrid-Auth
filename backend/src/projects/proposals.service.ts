@@ -378,36 +378,6 @@ export class ProposalsService {
       details: { repoCount, totalContributions, level, langMatchCount }
     };
   }
-    const level = profile?.level || 0;
-
-    // languages requirement: check number of repos matching required languages
-    let langMatchCount = 0;
-    if (requirements?.languages && Array.isArray(requirements.languages) && requirements.languages.length > 0) {
-      for (const p of projects) {
-        const langs = p.languages || {};
-        for (const L of requirements.languages) {
-          if (Object.prototype.hasOwnProperty.call(langs, L) && (Number(langs[L] || 0) > 0)) { langMatchCount++; break; }
-        }
-      }
-    }
-
-    const meetsRepoCount = !requirements?.minRepoCount || repoCount >= Number(requirements.minRepoCount || 0);
-    // support both names for backward compatibility: minContributions preferred, fallback to minCommits
-    const minContribReq = Number(requirements?.minContributions ?? requirements?.minCommits ?? 0);
-    const meetsContributions = !minContribReq || totalContributions >= minContribReq;
-    const meetsLevel = !requirements?.minLevel || level >= Number(requirements.minLevel || 0);
-    const meetsLangs = !(requirements?.languages && requirements.languages.length > 0) || langMatchCount >= 1;
-
-    return {
-      meetsAll: meetsRepoCount && meetsContributions && meetsLevel && meetsLangs,
-      meetsCore: meetsRepoCount && meetsContributions && meetsLevel,
-      meetsRepoCount,
-      meetsContributions,
-      meetsLevel,
-      meetsLangs,
-      details: { repoCount, totalContributions, level, langMatchCount }
-    };
-  }
 
   async applyToProposal(userId: string, proposalId: string, message?: string) {
     const Proposal = this.mongo.getProposalModel();
