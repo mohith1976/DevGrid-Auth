@@ -3,7 +3,7 @@ import AddProjectModal from './AddProjectModal';
 import ConfirmModal from './ConfirmModal';
 import Toast from './Toast';
 import axios from 'axios';
-import DeveloperStats from './DeveloperStats';
+
 import LanguageSnapshot from './LanguageSnapshot';
 import Achievements from './Achievements';
 import ProposalsList from './ProposalsList';
@@ -355,11 +355,7 @@ export default function Dashboard({ user }: { user: User }){
               <Teams user={user} />
             </React.Suspense>
           </div>
-        ) : active === 'Stats' ? (
-          <div>
-            <DeveloperStats />
-          </div>
-        ) : (
+        )  : (
           <div />
         )}
 
