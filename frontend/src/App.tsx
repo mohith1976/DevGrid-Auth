@@ -5,7 +5,7 @@ import PublicProfile from './components/PublicProfile';
 import Features from './components/Features';
 import HowItWorks from './components/HowItWorks';
 import Testimonials from './components/Testimonials';
-import DeveloperStats from './components/DeveloperStats';
+
 import Gamification from './components/Gamification';
 import Dashboard from './components/Dashboard';
 import Footer from './components/Footer';
@@ -121,7 +121,7 @@ function Home() {
       <div className="container">
         <Features />
         <Gamification />
-        <DeveloperStats />
+        
         <HowItWorks />
         <Testimonials />
       </div>
