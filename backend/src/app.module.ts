@@ -4,10 +4,11 @@ import { AuthModule } from './auth/auth.module';
 import { ProjectsModule } from './projects/projects.module';
 import { UploadsController } from './uploads/uploads.controller';
 import { StatsModule } from './stats/stats.module';
+import { RedisModule } from './redis/redis.module';
 
 
 @Module({
-  imports: [PrismaModule, AuthModule, ProjectsModule, StatsModule],
+  imports: [PrismaModule, AuthModule, ProjectsModule, StatsModule, RedisModule],
   controllers: [UploadsController],
   providers: [],
 })
