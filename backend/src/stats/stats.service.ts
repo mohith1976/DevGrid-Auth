@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '../redis/redis.service';
+import axios from 'axios';
 
 @Injectable()
 export class StatsService {
@@ -62,14 +63,91 @@ export class StatsService {
       // ignore metric failures
     }
 
-    // Generate SVG (currently dummy content)
-    const name = username || 'demo';
+    // Generate GitHub-backed SVG on cache miss
+    // Always return an SVG even if some fetches fail.
+    const name = String(username || 'demo');
+    const sinceDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+    const since = sinceDate.toISOString().slice(0, 10);
+
+    let stars = 0;
+    let publicRepos = 0;
+    let prs = 0;
+    let commits = 0;
+    let contributions = 0;
+    let streak = 0;
+
+    try {
+      // 1) Basic user info
+      try {
+        const u = await axios.get(`https://api.github.com/users/${encodeURIComponent(name)}`, { headers: { Accept: 'application/vnd.github.v3+json' }, validateStatus: () => true });
+        if (u.status === 200 && u.data) publicRepos = Number(u.data.public_repos || 0);
+      } catch (e) {}
+
+      // 2) Sum stars across repos (paginate)
+      try {
+        let page = 1;
+        while (true) {
+          const res = await axios.get(`https://api.github.com/users/${encodeURIComponent(name)}/repos`, { params: { per_page: 100, page }, headers: { Accept: 'application/vnd.github.v3+json' }, validateStatus: () => true });
+          if (res.status !== 200 || !Array.isArray(res.data) || res.data.length === 0) break;
+          for (const r of res.data) stars += Number(r.stargazers_count || 0);
+          if (res.data.length < 100) break;
+          page++;
+        }
+      } catch (e) {}
+
+      // 3) PRs in last year via search API
+      try {
+        const q = `author:${name} type:pr created:>=${since}`;
+        const res = await axios.get('https://api.github.com/search/issues', { params: { q, per_page: 1 }, headers: { Accept: 'application/vnd.github.v3+json' }, validateStatus: () => true });
+        if (res.status === 200 && res.data && typeof res.data.total_count === 'number') prs = Number(res.data.total_count || 0);
+      } catch (e) {}
+
+      // 4) Commits in last year: try search/commits (may require auth)
+      try {
+        const q = `author:${name} committer-date:>=${since}`;
+        const res = await axios.get('https://api.github.com/search/commits', { params: { q, per_page: 1 }, headers: { Accept: 'application/vnd.github.cloak-preview+json' }, validateStatus: () => true });
+        if (res.status === 200 && res.data && typeof res.data.total_count === 'number') commits = Number(res.data.total_count || 0);
+      } catch (e) {}
+
+      // 5) Contributions & streak: scrape GitHub contributions SVG
+      try {
+        const res = await axios.get(`https://github.com/users/${encodeURIComponent(name)}/contributions`, { validateStatus: () => true });
+        if (res.status === 200 && res.data) {
+          const body: string = res.data as string;
+          const re = /<rect[^>]*data-count="(\d+)"[^>]*data-date="([0-9-]+)"[^>]*>/g;
+          const days: Array<{date: string, count: number}> = [];
+          let m: RegExpExecArray | null;
+          while ((m = re.exec(body)) !== null) days.push({ date: m[2], count: Number(m[1]) });
+          contributions = days.reduce((s, d) => s + d.count, 0);
+          if (days.length > 0) {
+            days.sort((a,b)=> a.date.localeCompare(b.date));
+            let curStreak = 0;
+            for (let i = days.length - 1; i >= 0; i--) {
+              if (days[i].count > 0) curStreak++; else break;
+            }
+            streak = curStreak;
+            if (!commits) commits = contributions;
+          }
+        }
+      } catch (e) {}
+    } catch (e) {
+      this.logger.warn('Failed to fetch GitHub stats', (e as any)?.message || e);
+    }
+
+    // Build single SVG combining stats
     const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="450" height="120" viewBox="0 0 450 120" role="img" aria-label="DevGrid stats for ${name}">
-  <rect width="100%" height="100%" fill="#0b1226" rx="6"/>
-  <text x="24" y="40" fill="#ffffff" font-size="20" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">DevGrid Stats</text>
-  <text x="24" y="70" fill="#9aa4c0" font-size="14" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${name}</text>
-  <text x="24" y="95" fill="#9aa4c0" font-size="12" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">Commits: 123 • PRs: 45 • Stars: 10</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="140" viewBox="0 0 560 140" role="img" aria-label="DevGrid stats for ${name}">
+  <rect width="100%" height="100%" fill="#0b1226" rx="8"/>
+  <text x="28" y="36" fill="#ffffff" font-size="20" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">DevGrid Stats</text>
+  <text x="28" y="62" fill="#9aa4c0" font-size="14" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${name}</text>
+  <g transform="translate(28,86)" fill="#9aa4c0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12">
+    <text x="0" y="0">⭐ Stars: ${stars}</text>
+    <text x="140" y="0">📦 Repos: ${publicRepos}</text>
+    <text x="280" y="0">🔀 PRs (1y): ${prs}</text>
+    <text x="0" y="20">🧮 Commits (1y): ${commits}</text>
+    <text x="140" y="20">🔥 Contributions (1y): ${contributions}</text>
+    <text x="340" y="20">⏱ Streak: ${streak}d</text>
+  </g>
 </svg>`;
 
     // Store in cache (best-effort)
