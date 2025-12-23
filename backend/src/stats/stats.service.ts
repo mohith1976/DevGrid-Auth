@@ -21,11 +21,35 @@ export class StatsService {
     try {
       const cached = await this.redis.get<string>(key);
       if (cached) {
-        this.logger.debug(`Stats cache hit for ${key}`);
+        this.logger.log(`Stats cache hit for ${key}`);
+        // increment global and per-user hit counters (best-effort)
+        try {
+          const client = this.redis.getClient();
+          if (client) {
+            // global hit counter
+            client.incr('stats:metrics:hits').catch(()=>{});
+            // per-user hit counter
+            client.incr(`stats:metrics:hits:${String(username || 'demo').toLowerCase()}`).catch(()=>{});
+          }
+        } catch (e) {
+          // ignore metric failures
+        }
         return cached;
       }
     } catch (e) {
       this.logger.warn('Redis get failed, proceeding without cache', (e as any)?.message || e);
+    }
+
+    // cache miss - log and increment miss counters
+    this.logger.log(`Stats cache miss for ${key}`);
+    try {
+      const client = this.redis.getClient();
+      if (client) {
+        client.incr('stats:metrics:misses').catch(()=>{});
+        client.incr(`stats:metrics:misses:${String(username || 'demo').toLowerCase()}`).catch(()=>{});
+      }
+    } catch (e) {
+      // ignore metric failures
     }
 
     // Generate SVG (currently dummy content)
