@@ -11,12 +11,22 @@ export class StatsService {
     this.ttlSeconds = Number.isFinite(env) && env > 0 ? env : 300;
   }
 
-  private makeCacheKey(username: string) {
-    return `stats:svg:${String(username || 'demo').toLowerCase()}`;
+  private serializeOptions(options?: Record<string, any>) {
+    if (!options || Object.keys(options).length === 0) return 'default';
+    const keys = Object.keys(options).sort();
+    const pairs = keys.map(k => `${k}=${String(options[k])}`);
+    return encodeURIComponent(pairs.join('&'));
   }
 
-  async getSvgForUser(username: string): Promise<string> {
-    const key = this.makeCacheKey(username);
+  private makeCacheKey(username: string, type = 'demo', options?: Record<string, any>) {
+    const user = String(username || 'demo').toLowerCase();
+    const opt = this.serializeOptions(options);
+    // key format: stats:svg:{type}:{username}:{opts}
+    return `stats:svg:${type}:${user}:${opt}`;
+  }
+
+  async getSvgForUser(username: string, type = 'demo', options?: Record<string, any>): Promise<string> {
+    const key = this.makeCacheKey(username, type, options);
 
     try {
       const cached = await this.redis.get<string>(key);
