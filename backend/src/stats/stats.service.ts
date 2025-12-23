@@ -19,8 +19,12 @@ export class StatsService {
     return encodeURIComponent(pairs.join('&'));
   }
 
+  private normalizeUsername(username?: string) {
+    return String(username || 'demo').replace(/\.svg$/i, '').trim();
+  }
+
   private makeCacheKey(username: string, type = 'demo', options?: Record<string, any>) {
-    const user = String(username || 'demo').toLowerCase();
+    const user = this.normalizeUsername(username).toLowerCase();
     const opt = this.serializeOptions(options);
     // key format: stats:svg:{type}:{username}:{opts}
     return `stats:svg:${type}:${user}:${opt}`;
@@ -65,7 +69,10 @@ export class StatsService {
 
     // Generate GitHub-backed SVG on cache miss
     // Always return an SVG even if some fetches fail.
-    const name = String(username || 'demo');
+    const name = this.normalizeUsername(username);
+    const ghToken = process.env.GITHUB_TOKEN;
+    const authHeader = ghToken ? { Authorization: `Bearer ${ghToken}` } : {};
+    const ghHeaders = { Accept: 'application/vnd.github.v3+json', 'User-Agent': 'DevGrid-Stats', ...authHeader };
     const sinceDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
     const since = sinceDate.toISOString().slice(0, 10);
 
@@ -79,7 +86,7 @@ export class StatsService {
     try {
       // 1) Basic user info
       try {
-        const u = await axios.get(`https://api.github.com/users/${encodeURIComponent(name)}`, { headers: { Accept: 'application/vnd.github.v3+json' }, validateStatus: () => true });
+        const u = await axios.get(`https://api.github.com/users/${encodeURIComponent(name)}`, { headers: ghHeaders, validateStatus: () => true });
         if (u.status === 200 && u.data) publicRepos = Number(u.data.public_repos || 0);
       } catch (e) {}
 
@@ -87,7 +94,7 @@ export class StatsService {
       try {
         let page = 1;
         while (true) {
-          const res = await axios.get(`https://api.github.com/users/${encodeURIComponent(name)}/repos`, { params: { per_page: 100, page }, headers: { Accept: 'application/vnd.github.v3+json' }, validateStatus: () => true });
+          const res = await axios.get(`https://api.github.com/users/${encodeURIComponent(name)}/repos`, { params: { per_page: 100, page }, headers: ghHeaders, validateStatus: () => true });
           if (res.status !== 200 || !Array.isArray(res.data) || res.data.length === 0) break;
           for (const r of res.data) stars += Number(r.stargazers_count || 0);
           if (res.data.length < 100) break;
@@ -98,7 +105,7 @@ export class StatsService {
       // 3) PRs in last year via search API
       try {
         const q = `author:${name} type:pr created:>=${since}`;
-        const res = await axios.get('https://api.github.com/search/issues', { params: { q, per_page: 1 }, headers: { Accept: 'application/vnd.github.v3+json' }, validateStatus: () => true });
+        const res = await axios.get('https://api.github.com/search/issues', { params: { q, per_page: 1 }, headers: ghHeaders, validateStatus: () => true });
         if (res.status === 200 && res.data && typeof res.data.total_count === 'number') prs = Number(res.data.total_count || 0);
       } catch (e) {}
 
@@ -110,7 +117,7 @@ export class StatsService {
         while (page <= maxPages) {
           const res = await axios.get(`https://api.github.com/users/${encodeURIComponent(name)}/events`, {
             params: { per_page: 100, page },
-            headers: { Accept: 'application/vnd.github.v3+json' },
+            headers: ghHeaders,
             validateStatus: () => true,
           });
           if (res.status !== 200 || !Array.isArray(res.data) || res.data.length === 0) break;
