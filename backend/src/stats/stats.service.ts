@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '../redis/redis.service';
 import axios from 'axios';
+import { themePalette } from './svg-options.util';
 
 @Injectable()
 export class StatsService {
@@ -160,21 +161,46 @@ export class StatsService {
       this.logger.warn('Failed to fetch GitHub stats', (e as any)?.message || e);
     }
 
-    // Build single SVG combining stats
-    const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="560" height="140" viewBox="0 0 560 140" role="img" aria-label="DevGrid stats for ${name}">
-  <rect width="100%" height="100%" fill="#0b1226" rx="8"/>
-  <text x="28" y="36" fill="#ffffff" font-size="20" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">DevGrid Stats</text>
-  <text x="28" y="62" fill="#9aa4c0" font-size="14" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${name}</text>
-    <g transform="translate(28,86)" fill="#9aa4c0" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12">
-    <text x="0" y="0">⭐ Stars: ${stars}</text>
-    <text x="140" y="0">📦 Repos: ${publicRepos}</text>
-    <text x="280" y="0">🔀 PRs (1y): ${prs}</text>
-    <text x="0" y="20">🧮 Recent Commits: ${commits}</text>
-    <text x="140" y="20">🔥 Recent Activity: ${contributions}</text>
-    <text x="340" y="20">⏱ Streak: ${streak}d</text>
-  </g>
-</svg>`;
+    // Visual options (presentation-only)
+    const opts = (options || {}) as Record<string, any>;
+    const palette = themePalette(opts.theme || 'dark');
+    // layout sizing
+    const layout = String(opts.layout || 'default');
+    let width = 560;
+    let height = 140;
+    let spacingY = 20;
+    if (layout === 'compact') {
+      width = 420; height = 110; spacingY = 18;
+    } else if (layout === 'wide') {
+      width = 760; height = 140; spacingY = 22;
+    }
+
+    const hideSet = new Set<string>((opts.hide || []).map((s: any) => String(s).toLowerCase()));
+    const showSet = new Set<string>((opts.show || []).map((s: any) => String(s).toLowerCase()));
+    const hideBorder = Boolean(opts.hide_border);
+
+    function renderSection(x: number, y: number, label: string, value: string, key: string) {
+      if (hideSet.has(key)) return '';
+      return `<g transform="translate(${x},${y})"><text x="0" y="0" fill="${palette.subtext}" font-size="12" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${label}</text><text x="0" y="16" fill="${palette.text}" font-size="16" font-weight="600" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${value}</text></g>`;
+    }
+
+    // Build single SVG combining stats (presentation-only modifications)
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>\n` +
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="DevGrid stats for ${name}">` +
+      `<rect width="100%" height="100%" fill="${palette.card}" rx="8"${hideBorder ? '' : ' stroke="#1f2a44" stroke-opacity="0.06"'} />` +
+      `<g transform="translate(24,28)">` +
+      `<text x="0" y="0" fill="${palette.text}" font-size="18" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">DevGrid Stats</text>` +
+      `<text x="0" y="22" fill="${palette.subtext}" font-size="13" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${name}</text>` +
+      `</g>` +
+      `<g transform="translate(24,${60})">` +
+      renderSection(0, 0, 'Stars', String(stars), 'stars') +
+      renderSection(160, 0, 'Repos', String(publicRepos), 'repos') +
+      renderSection(320, 0, 'PRs (1y)', String(prs), 'prs') +
+      renderSection(0, 48, 'Commits', String(commits), 'commits') +
+      renderSection(160, 48, 'Activity', String(contributions), 'contributions') +
+      renderSection(320, 48, 'Streak', `${streak}d`, 'streak') +
+      `</g>` +
+      `</svg>`;
 
     // Store in cache (best-effort)
     try {

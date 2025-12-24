@@ -3,6 +3,7 @@ import { StatsService } from './stats.service';
 import { PrismaService } from '../prisma.service';
 import { Request } from 'express';
 import { getUserIdFromAuthHeader } from '../auth/request-auth.util';
+import { parseSvgOptions } from './svg-options.util';
 
 @Controller('stats')
 export class StatsController {
@@ -31,14 +32,16 @@ export class StatsController {
   @Get(':username')
   @Header('Content-Type', 'image/svg+xml; charset=utf-8')
   @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
-  async getSvg(@Param('username') username: string) {
-    return this.statsService.getSvgForUser(username);
+  async getSvg(@Param('username') username: string, @Req() req: any) {
+    const options = parseSvgOptions(req.query as any);
+    return this.statsService.getSvgForUser(username, 'demo', options);
   }
 
   @Get(':username.svg')
   @Header('Content-Type', 'image/svg+xml; charset=utf-8')
   @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
-  async getSvgDot(@Param('username') username: string) {
-    return this.statsService.getSvgForUser(username);
+  async getSvgDot(@Param('username') username: string, @Req() req: any) {
+    const options = parseSvgOptions(req.query as any);
+    return this.statsService.getSvgForUser(username, 'demo', options);
   }
 }
