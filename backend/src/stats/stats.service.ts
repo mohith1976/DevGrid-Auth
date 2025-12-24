@@ -185,17 +185,18 @@ export class StatsService {
       [ { key: 'commits', label: 'Commits', value: String(commits) }, { key: 'contributions', label: 'Activity', value: String(contributions) }, { key: 'streak', label: 'Streak', value: `${streak}d` } ],
     ];
 
-    const innerPad = 24;
-    // recompute height to ensure no clipping; allow more vertical space for numbers/labels
-    const contentHeight = layout === 'compact' ? 140 : (layout === 'wide' ? 200 : 180);
+    const innerPad = 20;
+    // recompute height to ensure headings and numbers have room (increase to avoid clipping)
+    const contentHeight = layout === 'compact' ? 170 : (layout === 'wide' ? 220 : 200);
     height = contentHeight;
     const colWidth = Math.floor((width - innerPad * 2) / 3);
-    const headerY = 20;
-    const nameY = headerY + 24;
-    const statsStartY = headerY + 64;
-    const rowSpacing = layout === 'compact' ? 60 : 74;
+    const headerY = 26; // title baseline (moved down for visibility)
+    const nameY = headerY + 20; // username baseline below title
+    const statsStartY = nameY + 28; // space before numbers
+    const rowSpacing = layout === 'compact' ? 54 : (layout === 'wide' ? 64 : 60);
 
-    const numFont = layout === 'compact' ? 28 : (layout === 'wide' ? 44 : 36);
+    // number sizes: prominent but not overflowing; labels smaller
+    const numFont = layout === 'compact' ? 26 : (layout === 'wide' ? 46 : 38);
     const labelFont = layout === 'compact' ? 12 : 13;
 
     // helper to render a cell centered in its column using absolute coordinates
@@ -228,8 +229,8 @@ export class StatsService {
     svgParts.push(`<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="10" fill="${palette.card}" stroke="${borderColor}" stroke-opacity="${hideBorder ? '0' : String(borderOpacity)}" stroke-width="1" />`);
 
     // Header (title + username)
-    svgParts.push(`<text x="${innerPad}" y="${headerY}" fill="${palette.text}" font-size="18" font-weight="700" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">DevGrid Stats</text>`);
-    svgParts.push(`<text x="${innerPad}" y="${nameY}" fill="${palette.accent}" font-size="13" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${name}</text>`);
+    svgParts.push(`<text x="${innerPad}" y="${headerY}" fill="${palette.text}" font-size="16" font-weight="700" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">DevGrid Stats</text>`);
+    svgParts.push(`<text x="${innerPad}" y="${nameY}" fill="${palette.accent}" font-size="13" font-weight="600" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${name}</text>`);
 
     // Compute visible items flattening rows order left->right top->bottom
     const visibleItems = [] as { key: string; label: string; value: string }[];
