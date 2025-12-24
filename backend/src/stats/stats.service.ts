@@ -8,8 +8,8 @@ export class StatsService {
   private readonly ttlSeconds: number;
 
   constructor(private readonly redis: RedisService) {
-    const env = Number(process.env.STATS_CACHE_TTL_SECONDS || '300');
-    this.ttlSeconds = Number.isFinite(env) && env > 0 ? env : 300;
+    const env = Number(process.env.STATS_CACHE_TTL_SECONDS || '7200');
+    this.ttlSeconds = Number.isFinite(env) && env > 0 ? env : 7200;
   }
 
   private serializeOptions(options?: Record<string, any>) {
