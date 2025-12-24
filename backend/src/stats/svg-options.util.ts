@@ -2,7 +2,7 @@ import { ParsedQs } from 'qs';
 
 const THEMES = new Set(['dark', 'light', 'github', 'devgrid']);
 const LAYOUTS = new Set(['default', 'compact', 'wide']);
-const KNOWN_SECTIONS = new Set(['stars', 'repos', 'prs', 'commits', 'contributions', 'streak']);
+const KNOWN_SECTIONS = new Set(['stars', 'repos', 'prs', 'pr', 'pulls', 'pull_requests', 'commits', 'contributions', 'activity', 'streak']);
 
 export interface SvgOptions {
   theme: 'dark' | 'light' | 'github' | 'devgrid';
@@ -25,8 +25,8 @@ export function parseSvgOptions(q: ParsedQs | undefined): SvgOptions {
   const theme = THEMES.has(themeRaw) ? (themeRaw as SvgOptions['theme']) : 'dark';
   const layout = LAYOUTS.has(layoutRaw) ? (layoutRaw as SvgOptions['layout']) : 'default';
 
-  const hide = toList(q?.hide).map(s => s.toLowerCase()).filter(s => KNOWN_SECTIONS.has(s));
-  const show = toList(q?.show).map(s => s.toLowerCase()).filter(s => KNOWN_SECTIONS.has(s));
+  const hideList = toList(q?.hide).map(s => s.toLowerCase()).filter(s => KNOWN_SECTIONS.has(s));
+  const showList = toList(q?.show).map(s => s.toLowerCase()).filter(s => KNOWN_SECTIONS.has(s));
 
   const hide_border = ((): boolean => {
     const v = q?.hide_border;
@@ -35,13 +35,28 @@ export function parseSvgOptions(q: ParsedQs | undefined): SvgOptions {
     return s === '1' || s === 'true' || s === 'yes' || s === 'on';
   })();
 
-  // hide overrides show per requirements
-  const finalHide = new Set<string>(hide);
-  for (const s of show) {
-    if (!finalHide.has(s)) finalHide.add(s === 'all' ? '' : ''); // noop: show only matters for known sections, hide wins
+  // Determine visible set: start with all known sections, remove hide, then add show (but don't re-add anything hidden)
+  const visible = new Set<string>();
+  for (const s of KNOWN_SECTIONS) visible.add(s);
+  for (const h of hideList) {
+    visible.forEach(v => { if (v === h) visible.delete(v); });
+    visible.delete(h);
+  }
+  for (const s of showList) {
+    if (!hideList.includes(s)) visible.add(s);
   }
 
-  return { theme, layout, hide: Array.from(finalHide).filter(Boolean), show, hide_border };
+  // Normalize output hide/show arrays to the canonical keys we will use in rendering
+  const canonical = (k: string) => {
+    if (k === 'pr' || k === 'pulls' || k === 'pull_requests') return 'prs';
+    if (k === 'activity') return 'contributions';
+    return k;
+  };
+
+  const hide = Array.from(new Set(Array.from(KNOWN_SECTIONS).filter(k => !visible.has(k)).map(canonical))).filter(Boolean);
+  const show = Array.from(new Set(Array.from(visible).map(canonical))).filter(Boolean);
+
+  return { theme, layout, hide, show, hide_border };
 }
 
 export function themePalette(theme: SvgOptions['theme']) {
@@ -54,6 +69,7 @@ export function themePalette(theme: SvgOptions['theme']) {
       return { bg: '#0f1724', card: '#071028', text: '#e6eef8', subtext: '#9fb0d6', accent: '#00d4ff' };
     case 'dark':
     default:
-      return { bg: '#0b1226', card: '#0b1226', text: '#ffffff', subtext: '#9aa4c0', accent: '#7c5cff' };
+      // dark theme should be pure/near-black for strong contrast per design request
+      return { bg: '#000000', card: '#0b0b0b', text: '#ffffff', subtext: '#9aa4c0', accent: '#ff8c00' };
   }
 }

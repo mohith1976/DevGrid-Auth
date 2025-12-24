@@ -179,28 +179,65 @@ export class StatsService {
     const showSet = new Set<string>((opts.show || []).map((s: any) => String(s).toLowerCase()));
     const hideBorder = Boolean(opts.hide_border);
 
-    function renderSection(x: number, y: number, label: string, value: string, key: string) {
+    // canonical keys we'll render (2 rows x 3 cols)
+    const rows = [
+      [ { key: 'stars', label: 'Stars', value: String(stars) }, { key: 'repos', label: 'Repos', value: String(publicRepos) }, { key: 'prs', label: 'PRs (1y)', value: String(prs) } ],
+      [ { key: 'commits', label: 'Commits', value: String(commits) }, { key: 'contributions', label: 'Activity', value: String(contributions) }, { key: 'streak', label: 'Streak', value: `${streak}d` } ],
+    ];
+
+    const innerPad = 24;
+    const colWidth = Math.floor((width - innerPad * 2) / 3);
+    const headerY = 28;
+    const nameY = headerY + 22;
+    const statsStartY = headerY + 54;
+    const rowSpacing = layout === 'compact' ? 46 : 64;
+
+    const numFont = layout === 'compact' ? 20 : 28;
+    const labelFont = layout === 'compact' ? 11 : 12;
+
+    // helper to render a cell centered in its column
+    function renderCell(colIndex: number, rowIndex: number, item: { key: string; label: string; value: string }) {
+      const key = item.key;
       if (hideSet.has(key)) return '';
-      return `<g transform="translate(${x},${y})"><text x="0" y="0" fill="${palette.subtext}" font-size="12" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${label}</text><text x="0" y="16" fill="${palette.text}" font-size="16" font-weight="600" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${value}</text></g>`;
+      const x = innerPad + colIndex * colWidth + Math.floor(colWidth / 2);
+      const y = statsStartY + rowIndex * rowSpacing;
+      // center text by using text-anchor middle
+      return `<g transform="translate(${x},${y})" text-anchor="middle">` +
+        `<text x="0" y="0" fill="${palette.text}" font-size="${numFont}" font-weight="700" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${item.value}</text>` +
+        `<text x="0" y="${numFont + 6}" fill="${palette.subtext}" font-size="${labelFont}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${item.label}</text>` +
+        `</g>`;
     }
 
-    // Build single SVG combining stats (presentation-only modifications)
-    const svg = `<?xml version="1.0" encoding="UTF-8"?>\n` +
-      `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="DevGrid stats for ${name}">` +
-      `<rect width="100%" height="100%" fill="${palette.card}" rx="8"${hideBorder ? '' : ' stroke="#1f2a44" stroke-opacity="0.06"'} />` +
-      `<g transform="translate(24,28)">` +
-      `<text x="0" y="0" fill="${palette.text}" font-size="18" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">DevGrid Stats</text>` +
-      `<text x="0" y="22" fill="${palette.subtext}" font-size="13" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${name}</text>` +
-      `</g>` +
-      `<g transform="translate(24,${60})">` +
-      renderSection(0, 0, 'Stars', String(stars), 'stars') +
-      renderSection(160, 0, 'Repos', String(publicRepos), 'repos') +
-      renderSection(320, 0, 'PRs (1y)', String(prs), 'prs') +
-      renderSection(0, 48, 'Commits', String(commits), 'commits') +
-      renderSection(160, 48, 'Activity', String(contributions), 'contributions') +
-      renderSection(320, 48, 'Streak', `${streak}d`, 'streak') +
-      `</g>` +
-      `</svg>`;
+    // vertical dividers (between columns)
+    const dividerX1 = innerPad + colWidth;
+    const dividerX2 = innerPad + colWidth * 2;
+
+    const svgBodyParts: string[] = [];
+    svgBodyParts.push(`<?xml version="1.0" encoding="UTF-8"?>`);
+    svgBodyParts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="DevGrid stats for ${name}">`);
+    svgBodyParts.push(`<rect x="0" y="0" width="100%" height="100%" fill="${palette.card}" rx="8"${hideBorder ? '' : ` stroke="#ffffff" stroke-opacity="0.04"`} />`);
+    svgBodyParts.push(`<g transform="translate(${innerPad},${headerY})">`);
+    svgBodyParts.push(`<text x="0" y="0" fill="${palette.text}" font-size="18" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">DevGrid Stats</text>`);
+    svgBodyParts.push(`<text x="0" y="22" fill="${palette.subtext}" font-size="13" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${name}</text>`);
+    svgBodyParts.push(`</g>`);
+
+    // dividers
+    svgBodyParts.push(`<g stroke="${palette.subtext}" stroke-opacity="0.06">`);
+    svgBodyParts.push(`<line x1="${dividerX1}" y1="${statsStartY - 8}" x2="${dividerX1}" y2="${height - 16}" stroke-width="1" />`);
+    svgBodyParts.push(`<line x1="${dividerX2}" y1="${statsStartY - 8}" x2="${dividerX2}" y2="${height - 16}" stroke-width="1" />`);
+    svgBodyParts.push(`</g>`);
+
+    // cells
+    svgBodyParts.push(`<g>`);
+    for (let r = 0; r < rows.length; r++) {
+      for (let c = 0; c < rows[r].length; c++) {
+        svgBodyParts.push(renderCell(c, r, rows[r][c] as any));
+      }
+    }
+    svgBodyParts.push(`</g>`);
+
+    svgBodyParts.push(`</svg>`);
+    const svg = svgBodyParts.join('');
 
     // Store in cache (best-effort)
     try {
