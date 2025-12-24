@@ -185,46 +185,53 @@ export class StatsService {
       [ { key: 'commits', label: 'Commits', value: String(commits) }, { key: 'contributions', label: 'Activity', value: String(contributions) }, { key: 'streak', label: 'Streak', value: `${streak}d` } ],
     ];
 
-    const innerPad = 24;
+    const innerPad = 20;
+    // recompute height to ensure no clipping; allow a little extra bottom padding
+    const contentHeight = layout === 'compact' ? 110 : (layout === 'wide' ? 160 : 140);
+    height = contentHeight;
     const colWidth = Math.floor((width - innerPad * 2) / 3);
-    const headerY = 28;
-    const nameY = headerY + 22;
-    const statsStartY = headerY + 54;
+    const headerY = 18;
+    const nameY = headerY + 20;
+    const statsStartY = headerY + 48;
     const rowSpacing = layout === 'compact' ? 46 : 64;
 
-    const numFont = layout === 'compact' ? 20 : 28;
+    const numFont = layout === 'compact' ? 22 : 36;
     const labelFont = layout === 'compact' ? 11 : 12;
 
     // helper to render a cell centered in its column
     function renderCell(colIndex: number, rowIndex: number, item: { key: string; label: string; value: string }) {
       const key = item.key;
       if (hideSet.has(key)) return '';
-      const x = innerPad + colIndex * colWidth + Math.floor(colWidth / 2);
-      const y = statsStartY + rowIndex * rowSpacing;
-      // center text by using text-anchor middle
-      return `<g transform="translate(${x},${y})" text-anchor="middle">` +
+      const colCenter = innerPad + colIndex * colWidth + Math.floor(colWidth / 2);
+      const baseY = statsStartY + rowIndex * rowSpacing;
+      // ensure numbers don't overlap by placing number and label with enough gap
+      const numY = baseY;
+      const labelY = baseY + (numFont * 0.45) + 14;
+      return `<g transform="translate(${colCenter},${numY})" text-anchor="middle">` +
         `<text x="0" y="0" fill="${palette.text}" font-size="${numFont}" font-weight="700" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${item.value}</text>` +
-        `<text x="0" y="${numFont + 6}" fill="${palette.subtext}" font-size="${labelFont}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${item.label}</text>` +
+        `<text x="0" y="${labelY}" fill="${palette.subtext}" font-size="${labelFont}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${item.label}</text>` +
         `</g>`;
     }
 
-    // vertical dividers (between columns)
+    // vertical dividers (between columns) - lighter and shorter so not full height
     const dividerX1 = innerPad + colWidth;
     const dividerX2 = innerPad + colWidth * 2;
 
     const svgBodyParts: string[] = [];
     svgBodyParts.push(`<?xml version="1.0" encoding="UTF-8"?>`);
-    svgBodyParts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="DevGrid stats for ${name}">`);
-    svgBodyParts.push(`<rect x="0" y="0" width="100%" height="100%" fill="${palette.card}" rx="8"${hideBorder ? '' : ` stroke="#ffffff" stroke-opacity="0.04"`} />`);
+    // make width responsive in embedding contexts: width=100% + viewBox
+    svgBodyParts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="DevGrid stats for ${name}">`);
+    // outer card with subtle border
+    svgBodyParts.push(`<rect x="1" y="1" width="${width - 2}" height="${height - 2}" fill="${palette.card}" rx="10" stroke="${palette.border || palette.subtext}" stroke-opacity="${hideBorder ? '0' : '0.06'}" />`);
     svgBodyParts.push(`<g transform="translate(${innerPad},${headerY})">`);
     svgBodyParts.push(`<text x="0" y="0" fill="${palette.text}" font-size="18" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">DevGrid Stats</text>`);
-    svgBodyParts.push(`<text x="0" y="22" fill="${palette.subtext}" font-size="13" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${name}</text>`);
+    svgBodyParts.push(`<text x="0" y="22" fill="${palette.accent}" font-size="13" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${name}</text>`);
     svgBodyParts.push(`</g>`);
 
-    // dividers
-    svgBodyParts.push(`<g stroke="${palette.subtext}" stroke-opacity="0.06">`);
-    svgBodyParts.push(`<line x1="${dividerX1}" y1="${statsStartY - 8}" x2="${dividerX1}" y2="${height - 16}" stroke-width="1" />`);
-    svgBodyParts.push(`<line x1="${dividerX2}" y1="${statsStartY - 8}" x2="${dividerX2}" y2="${height - 16}" stroke-width="1" />`);
+    // dividers (shortened to avoid touching rounded corners)
+    svgBodyParts.push(`<g stroke="${palette.border || palette.subtext}" stroke-opacity="0.06">`);
+    svgBodyParts.push(`<line x1="${dividerX1}" y1="${statsStartY - 8}" x2="${dividerX1}" y2="${height - 12}" stroke-width="1" />`);
+    svgBodyParts.push(`<line x1="${dividerX2}" y1="${statsStartY - 8}" x2="${dividerX2}" y2="${height - 12}" stroke-width="1" />`);
     svgBodyParts.push(`</g>`);
 
     // cells

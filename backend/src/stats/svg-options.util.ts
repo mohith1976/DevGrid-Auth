@@ -62,14 +62,14 @@ export function parseSvgOptions(q: ParsedQs | undefined): SvgOptions {
 export function themePalette(theme: SvgOptions['theme']) {
   switch (theme) {
     case 'light':
-      return { bg: '#ffffff', card: '#f7f8fa', text: '#0b1226', subtext: '#586069', accent: '#0366d6' };
+      return { bg: '#ffffff', card: '#f7f8fa', text: '#0b1226', subtext: '#586069', accent: '#0366d6', border: '#0b1226' };
     case 'github':
-      return { bg: '#ffffff', card: '#fafbfc', text: '#24292f', subtext: '#57606a', accent: '#6cc644' };
+      return { bg: '#ffffff', card: '#fafbfc', text: '#24292f', subtext: '#57606a', accent: '#6cc644', border: '#e6e6e6' };
     case 'devgrid':
-      return { bg: '#0f1724', card: '#071028', text: '#e6eef8', subtext: '#9fb0d6', accent: '#00d4ff' };
+      return { bg: '#0f1724', card: '#071028', text: '#e6eef8', subtext: '#9fb0d6', accent: '#00d4ff', border: '#0b1226' };
     case 'dark':
     default:
       // dark theme should be pure/near-black for strong contrast per design request
-      return { bg: '#000000', card: '#0b0b0b', text: '#ffffff', subtext: '#9aa4c0', accent: '#ff8c00' };
+      return { bg: '#0b1226', card: '#0f141a', text: '#ffffff', subtext: '#9aa4c0', accent: '#ff8c00', border: '#ffffff' };
   }
 }
