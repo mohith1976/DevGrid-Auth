@@ -215,38 +215,62 @@ export class StatsService {
     const dividerX1 = innerPad + colWidth;
     const dividerX2 = innerPad + colWidth * 2;
 
-    const svgBodyParts: string[] = [];
-    svgBodyParts.push(`<?xml version="1.0" encoding="UTF-8"?>`);
-    // make width responsive in embedding contexts: width=100% + viewBox
-    svgBodyParts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="DevGrid stats for ${name}">`);
-    // pick border color and opacity; make dark theme border clearly visible (white)
+    // Build a minimal, clean card-style SVG
+    const svgParts: string[] = [];
+    svgParts.push(`<?xml version="1.0" encoding="UTF-8"?>`);
+    svgParts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="DevGrid stats for ${name}">`);
+
+    // border color and opacity (use palette.border when provided)
     const borderColor = (palette as any).border || palette.subtext;
-    const borderOpacity = (String(opts.theme || 'dark').toLowerCase() === 'dark') ? 0.92 : 0.12;
-    // outer card with subtle border (stronger visibility for dark theme)
-    svgBodyParts.push(`<rect x="1" y="1" width="${width - 2}" height="${height - 2}" fill="${palette.card}" rx="12" stroke="${borderColor}" stroke-opacity="${hideBorder ? '0' : String(borderOpacity)}" />`);
-    // Header: title and username on top-left
-    svgBodyParts.push(`<g transform="translate(${innerPad},${headerY})">`);
-    svgBodyParts.push(`<text x="0" y="0" fill="${palette.text}" font-size="18" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-weight="700">DevGrid Stats</text>`);
-    svgBodyParts.push(`<text x="0" y="22" fill="${palette.accent}" font-size="13" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${name}</text>`);
-    svgBodyParts.push(`</g>`);
+    const borderOpacity = (String(opts.theme || 'dark').toLowerCase() === 'dark') ? 0.9 : 0.14;
 
-    // dividers (shortened to avoid touching rounded corners)
-    svgBodyParts.push(`<g stroke="${borderColor}" stroke-opacity="${String(borderOpacity * 0.12)}">`);
-    svgBodyParts.push(`<line x1="${dividerX1}" y1="${statsStartY - 12}" x2="${dividerX1}" y2="${height - 14}" stroke-width="1" />`);
-    svgBodyParts.push(`<line x1="${dividerX2}" y1="${statsStartY - 12}" x2="${dividerX2}" y2="${height - 14}" stroke-width="1" />`);
-    svgBodyParts.push(`</g>`);
+    // outer rounded card
+    svgParts.push(`<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="10" fill="${palette.card}" stroke="${borderColor}" stroke-opacity="${hideBorder ? '0' : String(borderOpacity)}" stroke-width="1" />`);
 
-    // cells
-    svgBodyParts.push(`<g>`);
-    for (let r = 0; r < rows.length; r++) {
-      for (let c = 0; c < rows[r].length; c++) {
-        svgBodyParts.push(renderCell(c, r, rows[r][c] as any));
+    // Header (title + username)
+    svgParts.push(`<text x="${innerPad}" y="${headerY}" fill="${palette.text}" font-size="18" font-weight="700" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">DevGrid Stats</text>`);
+    svgParts.push(`<text x="${innerPad}" y="${nameY}" fill="${palette.accent}" font-size="13" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${name}</text>`);
+
+    // Compute visible items flattening rows order left->right top->bottom
+    const visibleItems = [] as { key: string; label: string; value: string }[];
+    for (const row of rows) {
+      for (const item of row) {
+        if (!hideSet.has(item.key)) visibleItems.push(item as any);
       }
     }
-    svgBodyParts.push(`</g>`);
 
-    svgBodyParts.push(`</svg>`);
-    const svg = svgBodyParts.join('');
+    // If all hidden, show placeholders for first row
+    if (visibleItems.length === 0) {
+      visibleItems.push({ key: 'stars', label: 'Stars', value: '0' }, { key: 'repos', label: 'Repos', value: '0' }, { key: 'prs', label: 'PRs (1y)', value: '0' });
+    }
+
+    // Layout: evenly distribute up to 3 columns
+    const cols = Math.min(3, Math.max(1, visibleItems.length));
+    const colW = Math.floor((width - innerPad * 2) / cols);
+    const baseY = statsStartY; // top position for first row numbers
+
+    // render visible items in columns in two rows if needed
+    for (let i = 0; i < visibleItems.length; i++) {
+      const col = i % cols;
+      const rowIdx = Math.floor(i / cols);
+      const centerX = innerPad + col * colW + Math.floor(colW / 2);
+      const numberY = baseY + rowIdx * (rowSpacing);
+      const labelY = numberY + Math.round(numFont * 0.9) + 8;
+      const it = visibleItems[i];
+      svgParts.push(`<text x="${centerX}" y="${numberY}" text-anchor="middle" fill="${palette.text}" font-size="${numFont}" font-weight="700" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${it.value}</text>`);
+      svgParts.push(`<text x="${centerX}" y="${labelY}" text-anchor="middle" fill="${palette.subtext}" font-size="${labelFont}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${it.label}</text>`);
+    }
+
+    // gentle vertical dividers between columns if more than one column
+    if (cols > 1) {
+      for (let c = 1; c < cols; c++) {
+        const x = innerPad + c * colW;
+        svgParts.push(`<line x1="${x}" y1="${baseY - 12}" x2="${x}" y2="${height - 14}" stroke="${borderColor}" stroke-opacity="${hideBorder ? '0' : '0.06'}" stroke-width="1" />`);
+      }
+    }
+
+    svgParts.push(`</svg>`);
+    const svg = svgParts.join('');
 
     // Store in cache (best-effort)
     try {
