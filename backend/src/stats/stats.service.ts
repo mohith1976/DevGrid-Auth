@@ -198,20 +198,17 @@ export class StatsService {
     const numFont = layout === 'compact' ? 28 : (layout === 'wide' ? 44 : 36);
     const labelFont = layout === 'compact' ? 12 : 13;
 
-    // helper to render a cell centered in its column
+    // helper to render a cell centered in its column using absolute coordinates
     function renderCell(colIndex: number, rowIndex: number, item: { key: string; label: string; value: string }) {
       const key = item.key;
       if (hideSet.has(key)) return '';
       const colLeft = innerPad + colIndex * colWidth;
-      const colCenter = colLeft + Math.floor(colWidth / 2);
-      const baseY = statsStartY + rowIndex * rowSpacing;
-      // number sits above label; ensure label uses smaller font and is placed below number
-      const numberY = baseY;
-      const labelY = numberY + Math.round(numFont * 0.9) + 6;
-      return `<g transform="translate(${colCenter},0)" text-anchor="middle">` +
-        `<text x="0" y="${numberY}" fill="${palette.text}" font-size="${numFont}" font-weight="800" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${item.value}</text>` +
-        `<text x="0" y="${labelY}" fill="${palette.subtext}" font-size="${labelFont}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${item.label}</text>` +
-        `</g>`;
+      const centerX = colLeft + Math.floor(colWidth / 2);
+      const numberY = statsStartY + rowIndex * rowSpacing; // absolute Y for number baseline
+      const labelY = numberY + Math.round(numFont * 0.9) + 8;
+      // Use text-anchor middle so x is center
+      return `<text x="${centerX}" y="${numberY}" text-anchor="middle" fill="${palette.text}" font-size="${numFont}" font-weight="800" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${item.value}</text>` +
+             `<text x="${centerX}" y="${labelY}" text-anchor="middle" fill="${palette.subtext}" font-size="${labelFont}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">${item.label}</text>`;
     }
 
     // vertical dividers (between columns) - lighter and shorter so not full height
@@ -222,8 +219,11 @@ export class StatsService {
     svgBodyParts.push(`<?xml version="1.0" encoding="UTF-8"?>`);
     // make width responsive in embedding contexts: width=100% + viewBox
     svgBodyParts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="DevGrid stats for ${name}">`);
-    // outer card with subtle border (stronger visibility)
-    svgBodyParts.push(`<rect x="1" y="1" width="${width - 2}" height="${height - 2}" fill="${palette.card}" rx="12" stroke="${palette.border || palette.subtext}" stroke-opacity="${hideBorder ? '0' : '0.12'}" />`);
+    // pick border color and opacity; make dark theme border clearly visible (white)
+    const borderColor = (palette as any).border || palette.subtext;
+    const borderOpacity = (String(opts.theme || 'dark').toLowerCase() === 'dark') ? 0.92 : 0.12;
+    // outer card with subtle border (stronger visibility for dark theme)
+    svgBodyParts.push(`<rect x="1" y="1" width="${width - 2}" height="${height - 2}" fill="${palette.card}" rx="12" stroke="${borderColor}" stroke-opacity="${hideBorder ? '0' : String(borderOpacity)}" />`);
     // Header: title and username on top-left
     svgBodyParts.push(`<g transform="translate(${innerPad},${headerY})">`);
     svgBodyParts.push(`<text x="0" y="0" fill="${palette.text}" font-size="18" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-weight="700">DevGrid Stats</text>`);
@@ -231,7 +231,7 @@ export class StatsService {
     svgBodyParts.push(`</g>`);
 
     // dividers (shortened to avoid touching rounded corners)
-    svgBodyParts.push(`<g stroke="${palette.border || palette.subtext}" stroke-opacity="0.08">`);
+    svgBodyParts.push(`<g stroke="${borderColor}" stroke-opacity="${String(borderOpacity * 0.12)}">`);
     svgBodyParts.push(`<line x1="${dividerX1}" y1="${statsStartY - 12}" x2="${dividerX1}" y2="${height - 14}" stroke-width="1" />`);
     svgBodyParts.push(`<line x1="${dividerX2}" y1="${statsStartY - 12}" x2="${dividerX2}" y2="${height - 14}" stroke-width="1" />`);
     svgBodyParts.push(`</g>`);
