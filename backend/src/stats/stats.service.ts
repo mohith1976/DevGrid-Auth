@@ -245,8 +245,9 @@ export class StatsService {
     const key = this.makeCacheKey(username, type, options);
     // find user token in prisma
     try {
-      const dbUser = await this.prisma.user.findUnique({ where: { id: userId }, select: { githubToken: true } as any });
-      const userToken = dbUser && (dbUser as any).githubToken ? String((dbUser as any).githubToken) : undefined;
+      // DB column name is `githubAccessToken` in your screenshots; read that column if present.
+      const dbUser = await this.prisma.user.findUnique({ where: { id: userId }, select: { githubAccessToken: true } as any });
+      const userToken = dbUser && (dbUser as any).githubAccessToken ? String((dbUser as any).githubAccessToken) : undefined;
       const tokenSource: 'user' | 'app' | 'none' = userToken ? 'user' : (process.env.GITHUB_TOKEN ? 'app' : 'none');
 
       let statsRes;
