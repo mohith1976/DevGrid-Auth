@@ -19,7 +19,26 @@ async function main() {
 
   try {
     const dbUser = await prisma.user.findUnique({ where: { id: userId }, select: { githubAccessToken: true } });
-    const token = dbUser && dbUser.githubAccessToken ? String(dbUser.githubAccessToken) : undefined;
+    let tokenRaw = dbUser && dbUser.githubAccessToken ? String(dbUser.githubAccessToken) : undefined;
+    let token = tokenRaw;
+    if (tokenRaw) {
+      try {
+        // decrypt using same algorithm as src/utils/crypto.util.ts
+        const { createDecipheriv } = require('crypto');
+        const key = Buffer.from(process.env.ENCRYPTION_KEY, 'base64');
+        const [ivB64, encryptedB64, tagB64] = tokenRaw.split(':');
+        const iv = Buffer.from(ivB64, 'base64');
+        const encrypted = Buffer.from(encryptedB64, 'base64');
+        const tag = Buffer.from(tagB64, 'base64');
+        const decipher = createDecipheriv('aes-256-gcm', key, iv);
+        decipher.setAuthTag(tag);
+        const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+        token = decrypted.toString('utf8');
+        console.log('Decrypted user githubAccessToken from DB');
+      } catch (e) {
+        console.warn('Failed to decrypt user token, using raw value');
+      }
+    }
     if (token) console.log('Using user githubAccessToken from DB');
     else if (process.env.GITHUB_TOKEN) console.log('No user token; falling back to app-level GITHUB_TOKEN');
     else console.log('No token found; will perform unauthenticated GitHub calls');

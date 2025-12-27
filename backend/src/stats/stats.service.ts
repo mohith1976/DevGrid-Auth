@@ -3,6 +3,7 @@ import { RedisService } from '../redis/redis.service';
 import { PrismaService } from '../prisma.service';
 import { GitHubDataService } from './github-data.service';
 import { themePalette } from './svg-options.util';
+import { decrypt as decryptToken } from '../utils/crypto.util';
 
 @Injectable()
 export class StatsService {
@@ -247,7 +248,11 @@ export class StatsService {
     try {
       // DB column name is `githubAccessToken` in your screenshots; read that column if present.
       const dbUser = await this.prisma.user.findUnique({ where: { id: userId }, select: { githubAccessToken: true } as any });
-      const userToken = dbUser && (dbUser as any).githubAccessToken ? String((dbUser as any).githubAccessToken) : undefined;
+      let userTokenRaw = dbUser && (dbUser as any).githubAccessToken ? String((dbUser as any).githubAccessToken) : undefined;
+      let userToken: string | undefined;
+      if (userTokenRaw) {
+        try { userToken = decryptToken(userTokenRaw); } catch (err) { this.logger.warn('Failed to decrypt user githubAccessToken, falling back to raw token'); userToken = userTokenRaw; }
+      }
       const tokenSource: 'user' | 'app' | 'none' = userToken ? 'user' : (process.env.GITHUB_TOKEN ? 'app' : 'none');
 
       let statsRes;
