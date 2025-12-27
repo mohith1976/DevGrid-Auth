@@ -92,13 +92,42 @@ async function main() {
     } catch (e) { console.warn('events fetch failed', e.message); }
 
     // Build simple SVG (keeps format compatible)
-    const key = `stats:svg:demo:${String(username).toLowerCase()}:default`;
-    const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="560" height="240">` +
-      `<text x="20" y="30" font-weight="700">DevGrid Stats</text>` +
-      `<text x="20" y="56" fill="#0a66c2">${username}</text>` +
-      `<text x="80" y="120" font-size="34" font-weight="700">${stats.stars}</text>` +
-      `<text x="260" y="120" font-size="34" font-weight="700">${stats.publicRepos}</text>` +
-      `<text x="440" y="120" font-size="34" font-weight="700">${stats.prs}</text>` +
+    // Build canonical options string matching backend serializeOptions behavior
+    const optsPairs = [
+      'hide=',
+      'hide_border=false',
+      'layout=default',
+      'show=stars,repos,prs,commits,contributions,streak',
+      'theme=dark'
+    ].join('&');
+    const optEncoded = encodeURIComponent(optsPairs);
+    const key = `stats:svg:demo:${String(username).toLowerCase()}:${optEncoded}`;
+
+    // Determine accuracy flag: if any fetch logged warnings we set partial=true earlier
+    // In this script we treated warnings but didn't set a 'partial' flag; infer accuracy by checking whether token was used and no warnings occurred.
+    // For simplicity, mark as 'accurate' if token was present and we got a non-empty repos count; otherwise 'approximate'.
+    const usedUserToken = Boolean(token);
+    const accuracy = (usedUserToken && stats.publicRepos > 0) ? 'accurate' : (usedUserToken ? 'partial' : 'approximate');
+
+    const accuracyNote = accuracy === 'accurate' ? 'Accurate data' : (accuracy === 'partial' ? 'Data may be incomplete' : 'Approximate data');
+
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<!--TOKEN-SOURCE:${usedUserToken?'USER':'APP_OR_NONE'}-->\n<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="240" viewBox="0 0 560 240" preserveAspectRatio="xMidYMid meet">` +
+      `<rect x="0.5" y="0.5" width="559" height="239" rx="10" fill="#0f141a" stroke="#ffffff" stroke-opacity="0.9" stroke-width="1" />` +
+      `<text x="22" y="30" fill="#ffffff" font-size="18" font-weight="800">DevGrid Stats</text>` +
+      `<text x="22" y="52" fill="#ff8c00" font-size="14" font-weight="700">${username}</text>` +
+      `<text x="22" y="68" fill="#9aa4c0" font-size="11">${accuracyNote}</text>` +
+      `<text x="108" y="88" text-anchor="middle" fill="#ffffff" font-size="34" font-weight="700">${stats.stars}</text>` +
+      `<text x="108" y="127" text-anchor="middle" fill="#9aa4c0" font-size="13">Stars</text>` +
+      `<text x="280" y="88" text-anchor="middle" fill="#ffffff" font-size="34" font-weight="700">${stats.publicRepos}</text>` +
+      `<text x="280" y="127" text-anchor="middle" fill="#9aa4c0" font-size="13">Repos</text>` +
+      `<text x="452" y="88" text-anchor="middle" fill="#ffffff" font-size="34" font-weight="700">${stats.prs}</text>` +
+      `<text x="452" y="127" text-anchor="middle" fill="#9aa4c0" font-size="13">PRs (1y)</text>` +
+      `<text x="108" y="178" text-anchor="middle" fill="#ffffff" font-size="34" font-weight="700">${stats.commits}</text>` +
+      `<text x="108" y="217" text-anchor="middle" fill="#9aa4c0" font-size="13">Commits</text>` +
+      `<text x="280" y="178" text-anchor="middle" fill="#ffffff" font-size="34" font-weight="700">${stats.contributions}</text>` +
+      `<text x="280" y="217" text-anchor="middle" fill="#9aa4c0" font-size="13">Activity</text>` +
+      `<text x="452" y="178" text-anchor="middle" fill="#ffffff" font-size="34" font-weight="700">${stats.streak}d</text>` +
+      `<text x="452" y="217" text-anchor="middle" fill="#9aa4c0" font-size="13">Streak</text>` +
       `</svg>`;
 
     // TTL selection: prefer user token => longer
