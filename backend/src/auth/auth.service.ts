@@ -18,6 +18,7 @@ export class AuthService {
     if (process.env.GITHUB_CLIENT_ID) body.set('client_id', process.env.GITHUB_CLIENT_ID);
     if (process.env.GITHUB_CLIENT_SECRET) body.set('client_secret', process.env.GITHUB_CLIENT_SECRET);
     body.set('code', code);
+    if (process.env.GITHUB_CALLBACK_URL) body.set('redirect_uri', process.env.GITHUB_CALLBACK_URL);
 
     const res = await axios.post(tokenUrl, body.toString(), {
       headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -73,6 +74,22 @@ export class AuthService {
 
   async handleGitHubCallback(code: string) {
     const tokenResponse = await this.exchangeCodeForToken(code);
+    // Log presence of tokens (do NOT log token values)
+    try {
+      const logsDir = join(process.cwd(), 'backend', 'logs');
+      if (!existsSync(logsDir)) mkdirSync(logsDir, { recursive: true });
+      const out = {
+        ts: new Date().toISOString(),
+        event: 'token_response_received',
+        hasAccessToken: Boolean(tokenResponse?.access_token || tokenResponse?.accessToken),
+        hasRefreshToken: Boolean(tokenResponse?.refresh_token || tokenResponse?.refreshToken),
+        expires_in: tokenResponse?.expires_in ?? null,
+        refresh_expires_in: tokenResponse?.refresh_token_expires_in ?? null,
+      };
+      appendFileSync(join(logsDir, 'oauth.log'), JSON.stringify(out) + '\n');
+    } catch (e) {
+      this.logger.warn('Failed to write oauth token response log');
+    }
     const accessToken = tokenResponse?.access_token || tokenResponse?.accessToken;
     const refreshToken = tokenResponse?.refresh_token || tokenResponse?.refreshToken;
     const expiresIn = tokenResponse?.expires_in ? Number(tokenResponse.expires_in) : undefined;
@@ -119,23 +136,22 @@ export class AuthService {
     }
 
     // encrypt and store GitHub access token and optional refresh token on the User record in Postgres
-    try {
-      const encrypted = encrypt(accessToken);
-      const updateData: any = {
-        githubAccessToken: encrypted,
-        requestedScopes: process.env.REQUESTED_SCOPES || 'read:user user:email',
-        githubConnectedAt: new Date(),
-        githubTokenValid: true,
-      };
-      if (expiresIn && Number.isFinite(expiresIn) && expiresIn > 0) updateData.githubAccessTokenExpiresAt = new Date(Date.now() + expiresIn * 1000);
-      if (refreshToken) {
-        try { updateData.githubRefreshToken = encrypt(refreshToken); } catch (e) { this.logger.warn('Failed to encrypt refresh token'); }
-      }
-      if (refreshExpiresIn && Number.isFinite(refreshExpiresIn) && refreshExpiresIn > 0) updateData.githubRefreshTokenExpiresAt = new Date(Date.now() + Number(refreshExpiresIn) * 1000);
-      await this.prisma.user.update({ where: { id: user.id }, data: updateData });
-    } catch (err: any) {
-      this.logger.warn('Failed to encrypt or save GitHub access token/refresh token');
+    // If encryption/storage fails, throw so it's visible and can be fixed (e.g. invalid ENCRYPTION_KEY)
+    const logsDir = join(process.cwd(), 'backend', 'logs');
+    const encrypted = encrypt(accessToken);
+    const updateData: any = {
+      githubAccessToken: encrypted,
+      requestedScopes: process.env.REQUESTED_SCOPES || 'read:user user:email',
+      githubConnectedAt: new Date(),
+      githubTokenValid: true,
+    };
+    if (expiresIn && Number.isFinite(expiresIn) && expiresIn > 0) updateData.githubAccessTokenExpiresAt = new Date(Date.now() + expiresIn * 1000);
+    if (refreshToken) {
+      updateData.githubRefreshToken = encrypt(refreshToken);
     }
+    if (refreshExpiresIn && Number.isFinite(refreshExpiresIn) && refreshExpiresIn > 0) updateData.githubRefreshTokenExpiresAt = new Date(Date.now() + Number(refreshExpiresIn) * 1000);
+    await this.prisma.user.update({ where: { id: user.id }, data: updateData as any });
+    try { if (!existsSync(logsDir)) mkdirSync(logsDir, { recursive: true }); appendFileSync(join(logsDir, 'oauth.log'), JSON.stringify({ ts: new Date().toISOString(), event: 'token_persisted', userId: user.id }) + '\n'); } catch (_) {}
 
     // perform runtime capability checks and persist booleans
     try {
