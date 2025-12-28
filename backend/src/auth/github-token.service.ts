@@ -77,7 +77,26 @@ export class GitHubTokenService {
         if (refreshExpiresIn && refreshExpiresIn > 0) update.githubRefreshTokenExpiresAt = new Date(Date.now() + refreshExpiresIn * 1000);
         update.githubTokenValid = true;
 
-        await this.prisma.user.update({ where: { id: userId }, data: update as any });
+        // Use raw SQL update to avoid runtime Prisma client schema mismatch
+        try {
+          const parts: string[] = [];
+          const values: any[] = [];
+          let idx = 1;
+          if (update.githubAccessToken !== undefined) { parts.push(`"githubAccessToken" = $${idx++}`); values.push(update.githubAccessToken); }
+          if (update.githubAccessTokenExpiresAt !== undefined) { parts.push(`"githubAccessTokenExpiresAt" = $${idx++}`); values.push(update.githubAccessTokenExpiresAt); }
+          if (update.githubRefreshToken !== undefined) { parts.push(`"githubRefreshToken" = $${idx++}`); values.push(update.githubRefreshToken); }
+          if (update.githubRefreshTokenExpiresAt !== undefined) { parts.push(`"githubRefreshTokenExpiresAt" = $${idx++}`); values.push(update.githubRefreshTokenExpiresAt); }
+          if (update.githubTokenValid !== undefined) { parts.push(`"githubTokenValid" = $${idx++}`); values.push(update.githubTokenValid); }
+          if (parts.length > 0) {
+            const sql = `UPDATE "User" SET ${parts.join(', ')} WHERE id = $${idx}`;
+            values.push(userId);
+            await this.prisma.$executeRawUnsafe(sql, ...values);
+          }
+        } catch (e) {
+          this.logger.warn('Failed to persist refreshed tokens via raw SQL: ' + (e as any)?.message || e);
+          // fall back to prisma update (best-effort)
+          await this.prisma.user.update({ where: { id: userId }, data: update as any });
+        }
         return newAccessToken as string;
       } catch (e: any) {
         this.logger.warn('Refresh failed for user ' + userId + ': ' + (e?.message || e));

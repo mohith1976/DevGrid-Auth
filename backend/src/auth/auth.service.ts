@@ -150,8 +150,28 @@ export class AuthService {
       updateData.githubRefreshToken = encrypt(refreshToken);
     }
     if (refreshExpiresIn && Number.isFinite(refreshExpiresIn) && refreshExpiresIn > 0) updateData.githubRefreshTokenExpiresAt = new Date(Date.now() + Number(refreshExpiresIn) * 1000);
-    await this.prisma.user.update({ where: { id: user.id }, data: updateData as any });
-    try { if (!existsSync(logsDir)) mkdirSync(logsDir, { recursive: true }); appendFileSync(join(logsDir, 'oauth.log'), JSON.stringify({ ts: new Date().toISOString(), event: 'token_persisted', userId: user.id }) + '\n'); } catch (_) {}
+    // Use raw SQL UPDATE to avoid runtime Prisma client schema mismatch errors
+    try {
+      const parts: string[] = [];
+      const values: any[] = [];
+      let idx = 1;
+      if (updateData.githubAccessToken !== undefined) { parts.push(`"githubAccessToken" = $${idx++}`); values.push(updateData.githubAccessToken); }
+      if (updateData.requestedScopes !== undefined) { parts.push(`"requestedScopes" = $${idx++}`); values.push(updateData.requestedScopes); }
+      if (updateData.githubConnectedAt !== undefined) { parts.push(`"githubConnectedAt" = $${idx++}`); values.push(updateData.githubConnectedAt); }
+      if (updateData.githubTokenValid !== undefined) { parts.push(`"githubTokenValid" = $${idx++}`); values.push(updateData.githubTokenValid); }
+      if (updateData.githubAccessTokenExpiresAt !== undefined) { parts.push(`"githubAccessTokenExpiresAt" = $${idx++}`); values.push(updateData.githubAccessTokenExpiresAt); }
+      if (updateData.githubRefreshToken !== undefined) { parts.push(`"githubRefreshToken" = $${idx++}`); values.push(updateData.githubRefreshToken); }
+      if (updateData.githubRefreshTokenExpiresAt !== undefined) { parts.push(`"githubRefreshTokenExpiresAt" = $${idx++}`); values.push(updateData.githubRefreshTokenExpiresAt); }
+      if (parts.length > 0) {
+        const sql = `UPDATE "User" SET ${parts.join(', ')} WHERE id = $${idx}`;
+        values.push(user.id);
+        await this.prisma.$executeRawUnsafe(sql, ...values);
+      }
+      try { if (!existsSync(logsDir)) mkdirSync(logsDir, { recursive: true }); appendFileSync(join(logsDir, 'oauth.log'), JSON.stringify({ ts: new Date().toISOString(), event: 'token_persisted', userId: user.id }) + '\n'); } catch (_) {}
+    } catch (e: any) {
+      this.logger.error('Failed to persist tokens via raw SQL: ' + (e?.message || e));
+      throw e;
+    }
 
     // perform runtime capability checks and persist booleans
     try {
