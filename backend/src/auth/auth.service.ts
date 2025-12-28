@@ -14,14 +14,13 @@ export class AuthService {
 
   private async exchangeCodeForToken(code: string) {
     const tokenUrl = 'https://github.com/login/oauth/access_token';
-    const params = {
-      client_id: process.env.GITHUB_CLIENT_ID,
-      client_secret: process.env.GITHUB_CLIENT_SECRET,
-      code,
-    };
+    const body = new URLSearchParams();
+    if (process.env.GITHUB_CLIENT_ID) body.set('client_id', process.env.GITHUB_CLIENT_ID);
+    if (process.env.GITHUB_CLIENT_SECRET) body.set('client_secret', process.env.GITHUB_CLIENT_SECRET);
+    body.set('code', code);
 
-    const res = await axios.post(tokenUrl, params, {
-      headers: { Accept: 'application/json' },
+    const res = await axios.post(tokenUrl, body.toString(), {
+      headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
     });
     // res.data typically contains: { access_token, scope, token_type }
     // Log the returned scope (safe to log). Do NOT log the access_token.
@@ -35,6 +34,7 @@ export class AuthService {
     } catch (e) {
       this.logger.warn('Failed to write oauth log');
     }
+    // Normalize keys
     return res.data;
   }
 
