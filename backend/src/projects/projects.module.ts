@@ -12,9 +12,10 @@ import { AchievementsService } from './achievements.service';
 import { CertificationsService } from './certifications.service';
 import { MongoService } from '../mongo/mongo.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, AuthModule],
   controllers: [ProjectsController, ProposalsController, PublicProposalsController, TeamsController, AchievementsController, CertificationsController, DebugController],
   providers: [ProjectsService, MongoService, ProposalsService, AchievementsService, CertificationsService],
   exports: [ProjectsService],

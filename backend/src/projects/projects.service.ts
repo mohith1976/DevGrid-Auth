@@ -2,13 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { MongoService } from '../mongo/mongo.service';
 import axios from 'axios';
 import { PrismaService } from '../prisma.service';
-import { decrypt } from '../utils/crypto.util';
+import { GitHubTokenService, GitHubReconnectRequired } from '../auth/github-token.service';
 import { profileEvents } from '../events/profile-events';
 
 @Injectable()
 export class ProjectsService {
   private readonly logger = new Logger(ProjectsService.name);
-  constructor(private mongo: MongoService, private prisma: PrismaService) {}
+  constructor(private mongo: MongoService, private prisma: PrismaService, private tokenService: GitHubTokenService) {}
 
   private computeLevel(percent: number) {
     // Return a numeric level 0-5 and label based on percentage
@@ -144,7 +144,7 @@ export class ProjectsService {
       if (pgUser) {
         let token: string | undefined;
         if (pgUser.githubAccessToken) {
-          try { token = decrypt(pgUser.githubAccessToken); } catch (e: any) { this.logger.warn('Failed to decrypt token in worker'); }
+          try { token = await this.tokenService.getValidGitHubAccessToken(pgUser.id); } catch (e:any) { if (e instanceof GitHubReconnectRequired) { token = undefined; } else { this.logger.warn('Token resolution failed for user in worker', e?.message || e); } }
         }
         const headers: any = { Accept: 'application/vnd.github.v3+json' };
         if (token) headers.Authorization = `token ${token}`;
@@ -242,7 +242,7 @@ export class ProjectsService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     let token: string | undefined;
     if (user?.githubAccessToken) {
-      try { token = decrypt(user.githubAccessToken); } catch (e: any) { this.logger.warn('Failed to decrypt token'); }
+      try { token = await this.tokenService.getValidGitHubAccessToken(user.id); } catch (e: any) { if (e.name === 'GitHubReconnectRequired' || (e.message && String(e.message).toLowerCase().includes('reconnect'))) { token = undefined; } else { this.logger.warn('Failed to resolve token', e?.message || e); } }
     }
 
     const headers: any = { Accept: 'application/vnd.github.v3+json' };
@@ -394,7 +394,7 @@ export class ProjectsService {
     const login = user.username;
     let token: string | undefined;
     if (user.githubAccessToken) {
-      try { token = decrypt(user.githubAccessToken); } catch (e: any) { this.logger.warn('Failed to decrypt token for aggregate'); }
+      try { token = await this.tokenService.getValidGitHubAccessToken(userId); } catch (e:any) { if (e.name === 'GitHubReconnectRequired' || (e.message && String(e.message).toLowerCase().includes('reconnect'))) { token = undefined; } else { this.logger.warn('Failed to resolve token for aggregate', e?.message || e); } }
     }
     const headers: any = { Accept: 'application/vnd.github.v3+json' };
     if (token) headers.Authorization = `token ${token}`;
@@ -659,7 +659,7 @@ export class ProjectsService {
       const login = pgUser.username;
       let token: string | undefined;
       if (pgUser.githubAccessToken) {
-        try { token = decrypt(pgUser.githubAccessToken); } catch (e:any) { /* ignore */ }
+        try { token = await this.tokenService.getValidGitHubAccessToken(pgUser.id); } catch (e:any) { token = undefined; }
       }
       const headers: any = { Accept: 'application/vnd.github.v3+json' };
       if (token) headers.Authorization = `token ${token}`;
@@ -725,7 +725,7 @@ export class ProjectsService {
     const login = user.username;
     let token: string | undefined;
     if (user.githubAccessToken) {
-      try { token = decrypt(user.githubAccessToken); } catch (e: any) { this.logger.warn('Failed to decrypt token for repos'); }
+      try { token = await this.tokenService.getValidGitHubAccessToken(userId); } catch (e: any) { if (e.name === 'GitHubReconnectRequired' || (e.message && String(e.message).toLowerCase().includes('reconnect'))) { token = undefined; } else { this.logger.warn('Failed to resolve token for repos', e?.message || e); } }
     }
     const headers: any = { Accept: 'application/vnd.github.v3+json' };
     if (token) headers.Authorization = `token ${token}`;

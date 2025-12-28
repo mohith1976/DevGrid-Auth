@@ -20,24 +20,67 @@ async function main() {
   try {
     const dbUser = await prisma.user.findUnique({ where: { id: userId }, select: { githubAccessToken: true } });
     let tokenRaw = dbUser && dbUser.githubAccessToken ? String(dbUser.githubAccessToken) : undefined;
-    let token = tokenRaw;
-    if (tokenRaw) {
+    let token = undefined;
+    // Helper to decrypt using same algorithm
+    const { decryptPayload } = (() => {
+      const { createDecipheriv } = require('crypto');
+      const ivLen = 12;
+      const key = Buffer.from(process.env.ENCRYPTION_KEY, 'base64');
+      return {
+        decryptPayload: (payload) => {
+          const [ivB64, encryptedB64, tagB64] = payload.split(':');
+          const iv = Buffer.from(ivB64, 'base64');
+          const encrypted = Buffer.from(encryptedB64, 'base64');
+          const tag = Buffer.from(tagB64, 'base64');
+          const decipher = createDecipheriv('aes-256-gcm', key, iv);
+          decipher.setAuthTag(tag);
+          const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+          return decrypted.toString('utf8');
+        }
+      };
+    })();
+
+    // If access token present and not expired, use it. Otherwise try to refresh using refresh token.
+    if (tokenRaw && dbUser.githubAccessTokenExpiresAt && new Date(dbUser.githubAccessTokenExpiresAt) > new Date()) {
+      try { token = decryptPayload(tokenRaw); console.log('Decrypted user githubAccessToken from DB'); } catch (e) { console.warn('Failed to decrypt user token, using raw value'); token = tokenRaw; }
+    } else if (dbUser && dbUser.githubRefreshToken) {
       try {
-        // decrypt using same algorithm as src/utils/crypto.util.ts
-        const { createDecipheriv } = require('crypto');
-        const key = Buffer.from(process.env.ENCRYPTION_KEY, 'base64');
-        const [ivB64, encryptedB64, tagB64] = tokenRaw.split(':');
-        const iv = Buffer.from(ivB64, 'base64');
-        const encrypted = Buffer.from(encryptedB64, 'base64');
-        const tag = Buffer.from(tagB64, 'base64');
-        const decipher = createDecipheriv('aes-256-gcm', key, iv);
-        decipher.setAuthTag(tag);
-        const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
-        token = decrypted.toString('utf8');
-        console.log('Decrypted user githubAccessToken from DB');
-      } catch (e) {
-        console.warn('Failed to decrypt user token, using raw value');
-      }
+        const refreshEnc = String(dbUser.githubRefreshToken);
+        const refreshToken = decryptPayload(refreshEnc);
+        // call GitHub token endpoint to refresh
+        const tokenUrl = 'https://github.com/login/oauth/access_token';
+        const params = { grant_type: 'refresh_token', refresh_token: refreshToken, client_id: process.env.GITHUB_CLIENT_ID, client_secret: process.env.GITHUB_CLIENT_SECRET };
+        const tr = await axios.post(tokenUrl, params, { headers: { Accept: 'application/json' } });
+        if (tr && tr.data && (tr.data.access_token || tr.data.accessToken)) {
+          const newAccess = tr.data.access_token || tr.data.accessToken;
+          const newRefresh = tr.data.refresh_token || tr.data.refreshToken;
+          const expiresIn = Number(tr.data.expires_in || tr.data.expires || 0);
+          const refreshExpiresIn = Number(tr.data.refresh_token_expires_in || tr.data.refresh_expires_in || 0);
+          // encrypt helpers
+          const { randomBytes, createCipheriv } = require('crypto');
+          const ALGO = 'aes-256-gcm';
+          const key = Buffer.from(process.env.ENCRYPTION_KEY, 'base64');
+          const encrypt = (plain) => {
+            const iv = randomBytes(12);
+            const cipher = createCipheriv(ALGO, key, iv);
+            const encrypted = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()]);
+            const tag = cipher.getAuthTag();
+            return `${iv.toString('base64')}:${encrypted.toString('base64')}:${tag.toString('base64')}`;
+          };
+          const updates = { githubAccessToken: encrypt(newAccess), githubTokenValid: true };
+          if (expiresIn && expiresIn>0) updates.githubAccessTokenExpiresAt = new Date(Date.now() + expiresIn*1000);
+          if (newRefresh) updates.githubRefreshToken = encrypt(newRefresh);
+          if (refreshExpiresIn && refreshExpiresIn>0) updates.githubRefreshTokenExpiresAt = new Date(Date.now() + refreshExpiresIn*1000);
+          await prisma.user.update({ where: { id: userId }, data: updates });
+          token = newAccess;
+          console.log('Refreshed access token for user and updated DB');
+        } else {
+          console.warn('Refresh response did not include access_token; falling back to raw token if present');
+          if (tokenRaw) { try { token = decryptPayload(tokenRaw); } catch (e) { token = tokenRaw; } }
+        }
+      } catch (e) { console.warn('Refresh failed, falling back to raw token if present', (e && e.message) || e); if (tokenRaw) { try { token = decryptPayload(tokenRaw); } catch (_) { token = tokenRaw; } } }
+    } else if (tokenRaw) {
+      try { token = decryptPayload(tokenRaw); } catch (e) { token = tokenRaw; }
     }
     if (token) console.log('Using user githubAccessToken from DB');
     else if (process.env.GITHUB_TOKEN) console.log('No user token; falling back to app-level GITHUB_TOKEN');

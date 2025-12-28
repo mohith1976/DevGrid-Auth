@@ -19,6 +19,10 @@ model User {
   avatarUrl   String?
   githubId    String   @unique
   githubAccessToken String?
+  githubRefreshToken String?
+  githubAccessTokenExpiresAt DateTime?
+  githubRefreshTokenExpiresAt DateTime?
+  githubTokenValid Boolean @default(true)
   githubConnectedAt DateTime?
   requestedScopes    String?
   canReadUser        Boolean  @default(false)

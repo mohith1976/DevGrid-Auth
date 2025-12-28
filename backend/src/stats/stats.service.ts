@@ -3,14 +3,14 @@ import { RedisService } from '../redis/redis.service';
 import { PrismaService } from '../prisma.service';
 import { GitHubDataService } from './github-data.service';
 import { themePalette } from './svg-options.util';
-import { decrypt as decryptToken } from '../utils/crypto.util';
+import { GitHubTokenService, GitHubReconnectRequired } from '../auth/github-token.service';
 
 @Injectable()
 export class StatsService {
   private readonly logger = new Logger(StatsService.name);
   private readonly ttlSeconds: number;
 
-  constructor(private readonly redis: RedisService, private readonly prisma: PrismaService, private readonly gh: GitHubDataService) {
+  constructor(private readonly redis: RedisService, private readonly prisma: PrismaService, private readonly gh: GitHubDataService, private readonly tokenService: GitHubTokenService) {
     const env = Number(process.env.STATS_CACHE_TTL_SECONDS || '7200');
     this.ttlSeconds = Number.isFinite(env) && env > 0 ? env : 7200;
   }
@@ -244,25 +244,26 @@ export class StatsService {
   // It will use the user's stored GitHub token (if any) to generate a higher-confidence SVG.
   async generateAndCacheForUser(username: string, userId: string, type = 'demo', options?: Record<string, any>) {
     const key = this.makeCacheKey(username, type, options);
-    // find user token in prisma
-    try {
-      // DB column name is `githubAccessToken` in your screenshots; read that column if present.
-      const dbUser = await this.prisma.user.findUnique({ where: { id: userId }, select: { githubAccessToken: true } as any });
-      let userTokenRaw = dbUser && (dbUser as any).githubAccessToken ? String((dbUser as any).githubAccessToken) : undefined;
-      let userToken: string | undefined;
-      if (userTokenRaw) {
-        try { userToken = decryptToken(userTokenRaw); } catch (err) { this.logger.warn('Failed to decrypt user githubAccessToken, falling back to raw token'); userToken = userTokenRaw; }
-      }
-      const tokenSource: 'user' | 'app' | 'none' = userToken ? 'user' : (process.env.GITHUB_TOKEN ? 'app' : 'none');
-
-      let statsRes;
+      // find or refresh user token via central token service
       try {
-        const tokenToUse = userToken ? userToken : (process.env.GITHUB_TOKEN ? String(process.env.GITHUB_TOKEN) : undefined);
-        statsRes = await this.gh.fetchStatsForUser(this.normalizeUsername(username), tokenToUse);
-      } catch (e) {
-        this.logger.warn('generateAndCacheForUser: GitHub fetch failed', (e as any)?.message || e);
-        statsRes = { stats: { stars: 0, publicRepos: 0, prs: 0, commits: 0, contributions: 0, streak: 0 }, accuracy: 'partial' as const };
-      }
+        let tokenToUse: string | undefined;
+        try {
+          tokenToUse = await this.tokenService.getValidGitHubAccessToken(userId);
+        } catch (e) {
+          if (e instanceof GitHubReconnectRequired) {
+            // mark as no valid user token
+            tokenToUse = undefined;
+          } else throw e;
+        }
+        const tokenSource: 'user' | 'app' | 'none' = tokenToUse ? 'user' : (process.env.GITHUB_TOKEN ? 'app' : 'none');
+        let statsRes;
+        try {
+          const tokenToCall = tokenToUse ? tokenToUse : (process.env.GITHUB_TOKEN ? String(process.env.GITHUB_TOKEN) : undefined);
+          statsRes = await this.gh.fetchStatsForUser(this.normalizeUsername(username), tokenToCall);
+        } catch (e) {
+          this.logger.warn('generateAndCacheForUser: GitHub fetch failed', (e as any)?.message || e);
+          statsRes = { stats: { stars: 0, publicRepos: 0, prs: 0, commits: 0, contributions: 0, streak: 0 }, accuracy: 'partial' as const };
+        }
 
       // Build SVG using same renderer code path by reusing getSvgForUser?:
       // Call the main generator but skip reading cache by forcing a new fetch; reuse options.

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MongoService } from '../mongo/mongo.service';
 import { PrismaService } from '../prisma.service';
+import { GitHubTokenService, GitHubReconnectRequired } from '../auth/github-token.service';
 import { profileEvents } from '../events/profile-events';
 import axios from 'axios';
 import { decrypt } from '../utils/crypto.util';
@@ -8,7 +9,7 @@ import { decrypt } from '../utils/crypto.util';
 @Injectable()
 export class ProposalsService {
   private readonly logger = new Logger(ProposalsService.name);
-  constructor(private mongo: MongoService, private prisma: PrismaService) {}
+  constructor(private mongo: MongoService, private prisma: PrismaService, private tokenService: GitHubTokenService) {}
 
   async createProposal(ownerId: string, payload: any) {
     const Proposal = this.mongo.getProposalModel();
@@ -62,7 +63,7 @@ export class ProposalsService {
       const pgUser = await this.prisma.user.findUnique({ where: { id: ownerId } });
       let token: string | undefined;
       if (pgUser?.githubAccessToken) {
-        try { token = decrypt(pgUser.githubAccessToken); } catch (e:any) { this.logger.warn('Failed to decrypt github token for proposals'); }
+        try { token = await this.tokenService.getValidGitHubAccessToken(pgUser.id); } catch (e:any) { if (e instanceof GitHubReconnectRequired) { token = undefined; } else { this.logger.warn('Failed to resolve token for proposals', e?.message || e); } }
       }
       const headers: any = { Accept: 'application/vnd.github.v3+json' };
       if (token) headers.Authorization = `token ${token}`;
@@ -287,7 +288,7 @@ export class ProposalsService {
         const login = pgUser.username;
         let token: string | undefined;
         if (pgUser.githubAccessToken) {
-          try { token = decrypt(pgUser.githubAccessToken); } catch (e:any) { this.logger.warn('Failed to decrypt token for applicant validation'); }
+          try { token = await this.tokenService.getValidGitHubAccessToken(pgUser.id); } catch (e:any) { if (e instanceof GitHubReconnectRequired) { token = undefined; } else { this.logger.warn('Failed to resolve token for applicant validation', e?.message || e); } }
         }
         const headers: any = { Accept: 'application/vnd.github.v3+json' };
         if (token) headers.Authorization = `token ${token}`;
@@ -339,7 +340,7 @@ export class ProposalsService {
           const login = pgUser.username;
           let token: string | undefined;
           if (pgUser.githubAccessToken) {
-            try { token = decrypt(pgUser.githubAccessToken); } catch (e:any) { /* ignore */ }
+            try { token = await this.tokenService.getValidGitHubAccessToken(pgUser.id); } catch (e:any) { token = undefined; }
           }
           const headers: any = { Accept: 'application/vnd.github.v3+json' };
           if (token) headers.Authorization = `token ${token}`;

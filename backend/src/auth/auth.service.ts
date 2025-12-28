@@ -73,7 +73,10 @@ export class AuthService {
 
   async handleGitHubCallback(code: string) {
     const tokenResponse = await this.exchangeCodeForToken(code);
-    const accessToken = tokenResponse?.access_token;
+    const accessToken = tokenResponse?.access_token || tokenResponse?.accessToken;
+    const refreshToken = tokenResponse?.refresh_token || tokenResponse?.refreshToken;
+    const expiresIn = tokenResponse?.expires_in ? Number(tokenResponse.expires_in) : undefined;
+    const refreshExpiresIn = tokenResponse?.refresh_token_expires_in ? Number(tokenResponse.refresh_token_expires_in) : undefined;
     const scope = tokenResponse?.scope || null;
     if (!accessToken) throw new Error('Failed to get access token from GitHub');
 
@@ -115,19 +118,23 @@ export class AuthService {
       this.logger.warn('Failed to write oauth log');
     }
 
-    // encrypt and store GitHub access token on the User record in Postgres
+    // encrypt and store GitHub access token and optional refresh token on the User record in Postgres
     try {
       const encrypted = encrypt(accessToken);
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: {
-          githubAccessToken: encrypted,
-          requestedScopes: process.env.REQUESTED_SCOPES || 'read:user user:email',
-          githubConnectedAt: new Date(),
-        },
-      });
+      const updateData: any = {
+        githubAccessToken: encrypted,
+        requestedScopes: process.env.REQUESTED_SCOPES || 'read:user user:email',
+        githubConnectedAt: new Date(),
+        githubTokenValid: true,
+      };
+      if (expiresIn && Number.isFinite(expiresIn) && expiresIn > 0) updateData.githubAccessTokenExpiresAt = new Date(Date.now() + expiresIn * 1000);
+      if (refreshToken) {
+        try { updateData.githubRefreshToken = encrypt(refreshToken); } catch (e) { this.logger.warn('Failed to encrypt refresh token'); }
+      }
+      if (refreshExpiresIn && Number.isFinite(refreshExpiresIn) && refreshExpiresIn > 0) updateData.githubRefreshTokenExpiresAt = new Date(Date.now() + Number(refreshExpiresIn) * 1000);
+      await this.prisma.user.update({ where: { id: user.id }, data: updateData });
     } catch (err: any) {
-      this.logger.warn('Failed to encrypt or save GitHub access token');
+      this.logger.warn('Failed to encrypt or save GitHub access token/refresh token');
     }
 
     // perform runtime capability checks and persist booleans
