@@ -100,14 +100,14 @@ export class GitHubTokenService {
         return newAccessToken as string;
       } catch (e: any) {
         this.logger.warn('Refresh failed for user ' + userId + ': ' + (e?.message || e));
-        // Mark invalid and throw
-        try { await this.prisma.user.update({ where: { id: userId }, data: ({ githubTokenValid: false } as any) }); } catch (_){ }
+        // Mark invalid and throw (use raw SQL to avoid Prisma schema mismatch)
+        try { await this.prisma.$executeRawUnsafe('UPDATE "User" SET "githubTokenValid" = $1 WHERE id = $2', false, userId); } catch (_){ }
         throw new GitHubReconnectRequired('Failed to refresh token - reconnect required');
       }
     }
 
     // No valid refresh token available
-    try { await this.prisma.user.update({ where: { id: userId }, data: ({ githubTokenValid: false } as any) }); } catch (_){ }
+    try { await this.prisma.$executeRawUnsafe('UPDATE "User" SET "githubTokenValid" = $1 WHERE id = $2', false, userId); } catch (_){ }
     throw new GitHubReconnectRequired('No valid refresh token - reconnect required');
   }
 }
