@@ -3,7 +3,7 @@
  * Set S3 bucket CORS using AWS SDK v3.
  * Usage:
  *   node scripts/set-s3-cors.js
- *   node scripts/set-s3-cors.js https://www.digitaldevgrid.tech,http://15.207.111.237
+ *   node scripts/set-s3-cors.js https://www.digitaldevgrid.tech,http://15.206.186.119
  */
 const { S3Client, PutBucketCorsCommand, GetBucketCorsCommand } = require('@aws-sdk/client-s3');
 const path = require('path');
@@ -34,8 +34,8 @@ const fs = require('fs');
     // add common fallbacks: EC2 IP (http + https) and common production frontend origins
     // Note: CORS origins must include the exact scheme. We include both schemes for the IP
     // in case the site is accessed via http or https during testing.
-    defaultOrigins.push('http://15.207.111.237');
-    defaultOrigins.push('https://15.207.111.237');
+    defaultOrigins.push('http://15.206.186.119');
+    defaultOrigins.push('http://15.206.186.119');
     // include production apex and www domains as safe defaults (deduped later)
     defaultOrigins.push('https://digitaldevgrid.tech');
     defaultOrigins.push('https://www.digitaldevgrid.tech');
