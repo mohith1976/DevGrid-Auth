@@ -19,6 +19,7 @@ import { generateOAuthState } from './state-generator.js';
 import { generateAuthorizationUrl } from './url-generator.js';
 import { OAuthStateStore } from './state-store.js';
 import { GitHubOAuthClient, GitHubOAuthError } from './github-oauth-client.js';
+import { AuthCodeService } from '../auth-code/auth-code.service.js';
 import type { AuthResult } from '../../domain/auth/models.js';
 import { AuthErrorCode } from '../../domain/auth/errors.js';
 import { getConfig } from '../../config/index.js';
@@ -47,9 +48,10 @@ export class OAuthServiceError extends Error {
 export class OAuthService {
   private readonly stateStore = new OAuthStateStore();
   private readonly githubClient = new GitHubOAuthClient();
+  private readonly authCodeService: AuthCodeService;
   private readonly oauthConfig: OAuthConfig;
 
-  constructor() {
+  constructor(authCodeService: AuthCodeService) {
     // Initialize OAuth configuration once at construction
     const config = getConfig();
     this.oauthConfig = createOAuthConfig(
@@ -57,6 +59,7 @@ export class OAuthService {
       config.github.clientSecret,
       config.service.url,
     );
+    this.authCodeService = authCodeService;
   }
 
   /**
@@ -95,26 +98,28 @@ export class OAuthService {
   }
 
   /**
-   * Handle OAuth callback
-   * AUTH_FLOW.md Steps 8-11
+   * Handle OAuth callback and generate authentication code
+   * AUTH_FLOW.md Steps 8-12
    * 
-   * Validates state, exchanges code for token, retrieves user, consumes state.
+   * Validates state, exchanges code for token, retrieves user, generates auth code.
    * 
    * Callback Flow:
    * 1. Validate state exists (CSRF protection)
    * 2. Exchange authorization code for token
    * 3. Retrieve authenticated user from GitHub
-   * 4. Consume state (single-use, after successful completion)
-   * 5. Return authentication result
+   * 4. Generate one-time authentication code
+   * 5. Store authentication result
+   * 6. Consume OAuth state (single-use, after successful completion)
+   * 7. Return authentication code for extension redirect
    * 
    * State is consumed AFTER successful OAuth completion to allow retry on GitHub failure.
    * 
    * @param code - Authorization code from GitHub
    * @param state - State parameter for validation
-   * @returns Complete authentication result (user + token, no session)
+   * @returns Authentication code for extension redirect
    * @throws OAuthServiceError if callback processing fails
    */
-  async handleCallback(code: string, state: string): Promise<AuthResult> {
+  async handleCallback(code: string, state: string): Promise<string> {
     // Step 1: Validate state exists
     const isValid = this.stateStore.validate(state);
     if (!isValid) {
@@ -137,19 +142,22 @@ export class OAuthService {
         token,
       );
 
-      // Step 4: Consume state after successful OAuth completion
-      // State is consumed here (not earlier) to allow retry if GitHub fails
-      this.stateStore.consume(state);
-
-      // Step 5: Return authentication result
-      // No session creation - session service will handle this in future phase
+      // Step 4: Build authentication result
       const authResult: AuthResult = {
         user,
         token,
         // session is optional - will be added by session service (Phase 4D)
       };
 
-      return authResult;
+      // Step 5: Generate and store authentication code
+      const authCode = this.authCodeService.generateAndStore(authResult);
+
+      // Step 6: Consume state after successful OAuth completion
+      // State is consumed here (not earlier) to allow retry if GitHub fails
+      this.stateStore.consume(state);
+
+      // Step 7: Return authentication code for redirect
+      return authCode;
     } catch (error) {
       // If GitHub operations fail, state remains valid for retry
       if (error instanceof GitHubOAuthError) {

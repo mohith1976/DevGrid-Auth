@@ -19,6 +19,9 @@ interface AppConfig {
   session: {
     secret: string;
   };
+  extension: {
+    callbackUrl: string;
+  };
 }
 
 function validateRequiredEnv(key: string): string {
@@ -59,6 +62,7 @@ export function loadConfig(): AppConfig {
   const githubClientSecret = validateRequiredEnv('GITHUB_CLIENT_SECRET');
   const authServiceUrl = validateRequiredEnv('AUTH_SERVICE_URL');
   const sessionSecret = validateRequiredEnv('SESSION_SECRET');
+  const extensionCallbackUrl = validateRequiredEnv('EXTENSION_CALLBACK_URL');
 
   // Validate port
   const port = validatePort(portStr);
@@ -78,6 +82,9 @@ export function loadConfig(): AppConfig {
     },
     session: {
       secret: sessionSecret,
+    },
+    extension: {
+      callbackUrl: extensionCallbackUrl,
     },
   };
 
