@@ -15,7 +15,6 @@ interface AppConfig {
   };
   service: {
     url: string;
-    frontendUrl: string;
   };
   session: {
     secret: string;
@@ -59,7 +58,6 @@ export function loadConfig(): AppConfig {
   const githubClientId = validateRequiredEnv('GITHUB_CLIENT_ID');
   const githubClientSecret = validateRequiredEnv('GITHUB_CLIENT_SECRET');
   const authServiceUrl = validateRequiredEnv('AUTH_SERVICE_URL');
-  const frontendUrl = validateRequiredEnv('FRONTEND_URL');
   const sessionSecret = validateRequiredEnv('SESSION_SECRET');
 
   // Validate port
@@ -77,7 +75,6 @@ export function loadConfig(): AppConfig {
     },
     service: {
       url: authServiceUrl,
-      frontendUrl: frontendUrl,
     },
     session: {
       secret: sessionSecret,
