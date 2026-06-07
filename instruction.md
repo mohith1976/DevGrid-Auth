@@ -25,6 +25,133 @@ The authentication service must remain:
 
 ---
 
+# Governance Rules
+
+## Authority Hierarchy
+
+The source of truth for DevGrid is:
+
+1. User Instructions
+2. Approved ADR Documents
+3. Phase Output Documents
+4. instruction.md
+5. v2-planning.md
+
+If conflicts exist, higher-priority sources override lower-priority sources.
+
+---
+
+## Specification Authority
+
+Kiro must not create new architecture decisions.
+
+Kiro must not create alternative architectures.
+
+Kiro must not reinterpret approved ADRs.
+
+Kiro must not replace approved designs with its own recommendations.
+
+Architecture has already been decided.
+
+Implementation follows architecture.
+
+---
+
+## Spec Mode Restrictions
+
+When operating in Spec Mode:
+
+Kiro may:
+
+* Clarify requirements
+* Break work into tasks
+* Create implementation plans
+* Create technical designs that comply with approved ADRs
+
+Kiro may not:
+
+* Change repository ownership
+* Change authentication architecture
+* Change communication models
+* Change security models
+* Change deployment models
+* Introduce new infrastructure
+* Create replacement specifications
+
+without explicit user approval.
+
+---
+
+## Architecture Freeze
+
+Phase 1, Phase 2, and Phase 3 are complete.
+
+Architecture is frozen.
+
+The following decisions are locked:
+
+* Two repository architecture
+* GitHub App authentication
+* Private authentication service
+* Repository boundaries
+* Permission model
+* Credential storage strategy
+* Credential lifecycle strategy
+* Onboarding strategy
+
+These decisions must be treated as requirements, not suggestions.
+
+---
+
+## No Autonomous Expansion
+
+Kiro must not independently introduce:
+
+* Databases
+* Analytics systems
+* Queues
+* Event buses
+* Additional services
+* Additional repositories
+* Telemetry systems
+* Monitoring platforms
+* New infrastructure
+
+unless explicitly approved through a new ADR.
+
+---
+
+## Documentation Discipline
+
+New documents may only be created when:
+
+* Requested by the user
+* Required by an approved roadmap phase
+* Required by implementation
+
+Do not generate speculative specifications.
+
+Do not generate future-roadmap documents.
+
+Do not create "recommended architecture" documents.
+
+Architecture decisions already exist.
+
+## Authentication Service Protection Rule
+
+The authentication service exists solely to support authentication.
+
+Kiro must not transform devgrid-auth into:
+
+* An application backend
+* A repository synchronization service
+* A user management platform
+* An analytics platform
+* A data processing service
+
+If functionality can live in devgrid-extension, it belongs in devgrid-extension.
+
+
 # Mission
 
 Provide secure authentication for DevGrid.
