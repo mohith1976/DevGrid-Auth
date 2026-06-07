@@ -465,6 +465,61 @@ The authentication service must not become:
 * User Management Platform
 
 ---
+# Authentication Result Delivery
+
+Authentication Results must not be transferred through:
+
+* URL Query Parameters
+* Browser History
+* Public Logs
+
+OAuth Client Secret must never leave Authentication Service.
+
+Authentication completion uses a One-Time Authentication Code mechanism.
+
+The Authentication Code contains no OAuth credentials.
+
+The Authentication Code serves only as a temporary reference to an Authentication Result stored by Authentication Service.
+
+---
+
+# Threat Mitigation
+
+Threat:
+
+OAuth Credential Exposure During Redirect
+
+Mitigation:
+
+OAuth Access Tokens are never embedded directly in redirect URLs.
+
+---
+
+Threat:
+
+Authentication Code Replay
+
+Mitigation:
+
+Authentication Codes are:
+
+* Single-use
+* Short-lived
+* Consumed after exchange
+
+---
+
+Threat:
+
+Client Secret Exposure
+
+Mitigation:
+
+OAuth Client Secret remains exclusively inside Authentication Service.
+
+The extension never receives OAuth Client Secret.
+
+---
 
 # Security Success Criteria
 

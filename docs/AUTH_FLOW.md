@@ -222,13 +222,15 @@ Authenticated GitHub User
 
 ## Step 12
 
-Authentication Service returns:
+Authentication Service completes:
+
+OAuth Authentication
+
+and produces:
 
 Authentication Result
 
-to DevGrid Extension.
-
-Returned data may include:
+Authentication Result may contain:
 
 * OAuth Access Token
 * GitHub User ID
@@ -238,6 +240,20 @@ Returned data may include:
 ---
 
 ## Step 13
+
+Authentication Service securely transfers the Authentication Result to DevGrid Extension.
+
+The transport mechanism is intentionally implementation-specific and must satisfy the following requirements:
+
+* OAuth Client Secret never leaves Authentication Service
+* Extension receives authentication result
+* Authentication Service does not become a GitHub repository proxy
+* Repository operations remain Extension → GitHub
+* Authentication completion remains compatible with future authentication lifecycle management
+
+---
+
+## Step 14
 
 Extension stores:
 
@@ -251,7 +267,7 @@ chrome.storage.local
 
 ---
 
-## Step 14
+## Step 15
 
 Extension enters:
 
@@ -518,6 +534,94 @@ Network error.
 Please check your connection.
 
 ---
+
+# Authentication Completion Requirements
+
+Authentication completion occurs after successful OAuth callback processing.
+
+Requirements:
+
+* Extension must receive authentication result
+* Authentication Service must retain ownership of OAuth Client Secret
+* Repository operations must continue to occur directly between Extension and GitHub
+* Authentication Service must not become a repository proxy
+* Authentication completion must support future authentication lifecycle management
+* Authentication completion must not require users to manually copy credentials
+
+The specific transport mechanism is an implementation decision and is intentionally not defined by this document.
+
+# Authentication Completion Flow
+
+After successful OAuth callback processing, Authentication Service must securely deliver the Authentication Result to DevGrid Extension.
+
+Authentication completion follows the sequence below:
+
+Extension
+↓
+Initiates OAuth Login
+
+GitHub
+↓
+User Authorization
+
+Authentication Service
+↓
+OAuth Callback Processing
+
+Authentication Service
+↓
+Generate One-Time Authentication Code
+
+Authentication Service
+↓
+Store Authentication Result Temporarily
+
+Authentication Service
+↓
+Redirect User Agent To Extension
+
+Extension
+↓
+Receive One-Time Authentication Code
+
+Extension
+↓
+Exchange Authentication Code
+
+Authentication Service
+↓
+Return Authentication Result
+
+Extension
+↓
+Store Authentication Result
+
+Authentication Result includes:
+
+* OAuth Access Token
+* GitHub User Metadata
+* Authentication Metadata
+
+---
+
+# Authentication Code Requirements
+
+Authentication Codes must:
+
+* Be cryptographically secure
+* Be single-use
+* Expire automatically
+* Be invalid after successful exchange
+* Never be reused
+
+Authentication Codes are temporary transport credentials only.
+
+They are not authentication sessions.
+
+They are not refresh tokens.
+
+They are not long-term credentials.
+
 
 # Trust Boundaries
 

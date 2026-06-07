@@ -161,13 +161,18 @@ GitHub OAuth
 
 ### Response
 
-Authentication Result
+Authentication Result is generated upon successful OAuth completion.
 
-May include:
+The mechanism used to deliver the Authentication Result to DevGrid Extension is intentionally unspecified by this contract.
 
-* OAuth Access Token
-* User Metadata
-* Authentication Metadata
+Requirements:
+
+* Authentication result must be delivered securely
+* OAuth Client Secret must never be exposed
+* Authentication Service must not become a repository proxy
+* Authentication completion must remain compatible with future authentication lifecycle management
+
+Implementation details are defined separately from this API contract.
 
 ---
 
@@ -184,6 +189,51 @@ Purpose:
 Terminate current authentication state.
 
 ---
+
+# POST /api/v1/auth/exchange
+
+Status:
+
+Planned
+
+Purpose:
+
+Exchange a One-Time Authentication Code for an Authentication Result.
+
+Request:
+
+{
+"authCode": "generated-authentication-code"
+}
+
+Response:
+
+{
+"success": true,
+"data": {
+"user": {
+"githubId": 123456,
+"username": "octocat"
+},
+"token": {
+"accessToken": "gho_xxx",
+"tokenType": "bearer",
+"scope": "repo,user"
+}
+}
+}
+
+---
+
+Security Requirements
+
+* Authentication Code must be valid
+* Authentication Code must be unexpired
+* Authentication Code must be unused
+* Authentication Code must be consumed after successful exchange
+
+Invalid or expired codes must be rejected.
+
 
 ### Called By
 
