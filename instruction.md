@@ -1,6 +1,6 @@
 # DevGrid Authentication Service Constitution
 
-Version: 1.0
+Version: 2.0
 
 Status: ACTIVE
 
@@ -14,7 +14,7 @@ This repository contains DevGrid authentication infrastructure.
 
 It is not the DevGrid product.
 
-It exists solely to support secure GitHub App authentication.
+It exists solely to support secure GitHub OAuth authentication.
 
 The authentication service must remain:
 
@@ -22,6 +22,8 @@ The authentication service must remain:
 * Secure
 * Maintainable
 * Independently deployable
+
+The authentication service exists to eliminate Personal Access Tokens while providing a familiar Sign In With GitHub experience.
 
 ---
 
@@ -91,8 +93,8 @@ Architecture is frozen.
 The following decisions are locked:
 
 * Two repository architecture
-* GitHub App authentication
-* Private authentication service
+* GitHub OAuth authentication
+* Minimal authentication service
 * Repository boundaries
 * Permission model
 * Credential storage strategy
@@ -133,9 +135,11 @@ Do not generate speculative specifications.
 
 Do not generate future-roadmap documents.
 
-Do not create "recommended architecture" documents.
+Do not create recommended architecture documents.
 
 Architecture decisions already exist.
+
+---
 
 ## Authentication Service Protection Rule
 
@@ -151,6 +155,7 @@ Kiro must not transform devgrid-auth into:
 
 If functionality can live in devgrid-extension, it belongs in devgrid-extension.
 
+---
 
 # Mission
 
@@ -158,7 +163,25 @@ Provide secure authentication for DevGrid.
 
 Nothing more.
 
-This repository exists because GitHub App secrets cannot safely exist inside a public browser extension.
+This repository exists because OAuth client credentials cannot safely exist inside a public browser extension.
+
+The service owns OAuth authorization and token exchange while keeping the user experience simple.
+
+---
+
+# Authentication Strategy
+
+DevGrid uses GitHub OAuth.
+
+GitHub OAuth was selected because:
+
+* Users already understand Sign In With GitHub
+* It minimizes onboarding friction
+* It removes Personal Access Tokens
+* It provides sufficient security for DevGrid's use case
+* It aligns with DevGrid's goal of adoption and simplicity
+
+GitHub Apps were evaluated and rejected due to the additional installation complexity introduced into the user onboarding flow.
 
 ---
 
@@ -166,11 +189,13 @@ This repository exists because GitHub App secrets cannot safely exist inside a p
 
 This repository owns:
 
-## GitHub App Integration
+## GitHub OAuth Integration
 
-* GitHub App configuration
-* GitHub App communication
-* GitHub App authorization flow
+* OAuth configuration
+* OAuth communication
+* Authorization flow
+* Token exchange
+* Session validation
 
 ---
 
@@ -186,8 +211,7 @@ This repository owns:
 
 ## Credential Management
 
-* GitHub App private keys
-* Client secrets
+* OAuth client credentials
 * Secret rotation
 * Credential protection
 
@@ -348,20 +372,6 @@ Communication occurs only through HTTP APIs.
 
 ---
 
-## Principle 8 - API Contract First
-
-Changes to public endpoints require:
-
-Documentation
-↓
-Review
-↓
-Implementation
-
-Endpoints are contracts.
-
----
-
 # Intended Architecture
 
 src/
@@ -370,7 +380,7 @@ src/
 │
 ├── services/
 │   ├── auth/
-│   ├── github-app/
+│   ├── oauth/
 │   └── token/
 │
 ├── middleware/
@@ -381,185 +391,28 @@ src/
 │
 └── utils/
 
-No additional top-level architecture should be introduced without review.
-
----
-
-# Layer Responsibilities
-
-## routes/
-
-Responsibilities:
-
-* HTTP endpoints
-* Request validation
-* Response formatting
-
-Routes coordinate.
-
-Routes do not contain business logic.
-
----
-
-## services/auth/
-
-Responsibilities:
-
-* Login workflows
-* Logout workflows
-* Authentication validation
-* Session workflows
-
-Core authentication logic belongs here.
-
----
-
-## services/github-app/
-
-Responsibilities:
-
-* GitHub App integration
-* Authorization workflows
-* GitHub authentication communication
-
-All GitHub App interactions belong here.
-
----
-
-## services/token/
-
-Responsibilities:
-
-* Token exchange
-* Token lifecycle
-* Revocation handling
-* Expiration handling
-
-Token management belongs here.
-
----
-
-## middleware/
-
-Responsibilities:
-
-* Security validation
-* Rate limiting
-* Request verification
-* Abuse prevention
-
-Cross-cutting concerns belong here.
-
----
-
-## domain/
-
-Responsibilities:
-
-* Authentication contracts
-* Shared models
-* Auth entities
-
-Examples:
-
-* AuthSession
-* TokenExchange
-* AuthResult
-
----
-
-## config/
-
-Responsibilities:
-
-* Environment configuration
-* Secret configuration
-* Runtime configuration
-
-Secrets must be accessed only through config.
-
----
-
-## utils/
-
-Pure helper functions only.
-
-No authentication workflows.
-
-No business logic.
-
----
-
-# Communication Model
-
-The extension communicates with this repository exclusively through HTTPS endpoints.
-
-No shared source code.
-
-No direct imports.
-
-No repository coupling.
-
----
-
-# Allowed Endpoints
-
-Examples:
-
-* Login
-* Logout
-* Callback
-* Session Validation
-* Token Exchange
-
-Authentication endpoints only.
-
----
-
-# Forbidden Features
-
-Do not introduce:
-
-* User databases
-* Analytics platforms
-* Telemetry
-* Statistics systems
-* Queue systems
-* Repository storage
-* Submission storage
-* Markdown generation
-* GitHub synchronization
-* Processing pipelines
-
-These violate repository boundaries.
-
----
-
-# Operational Philosophy
-
-The best authentication service is boring.
-
-It should:
-
-* Rarely change
-* Be easy to audit
-* Be easy to understand
-* Be easy to secure
-
-Avoid cleverness.
-
-Prefer simplicity.
-
 ---
 
 # Definition Of Success
 
 A successful authentication service:
 
-* Protects secrets
-* Enables secure authentication
+* Provides Sign In With GitHub
+* Eliminates Personal Access Tokens
 * Requires minimal maintenance
 * Remains independently deployable
 * Never becomes a product backend
 * Never becomes a synchronization service
 * Never becomes a data platform
+
+Users should be able to:
+
+Install Extension
+↓
+Sign In With GitHub
+↓
+Select Repository
+↓
+Use DevGrid
+
+without manually generating credentials.

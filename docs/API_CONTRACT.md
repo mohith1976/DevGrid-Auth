@@ -1,6 +1,6 @@
 # DevGrid Authentication API Contract
 
-Version: 1.0
+Version: 2.0
 
 Status: DESIGN APPROVED
 
@@ -32,6 +32,7 @@ The API exists solely to support:
 
 * Authentication
 * Session validation
+* OAuth token exchange
 * Credential lifecycle management
 
 Nothing more.
@@ -90,7 +91,7 @@ No synchronization endpoints.
 
 Purpose:
 
-Initiate GitHub authentication.
+Initiate GitHub OAuth authentication.
 
 ---
 
@@ -102,7 +103,7 @@ No request body.
 
 ### Response
 
-Redirect user to GitHub authorization flow.
+Redirect user to GitHub OAuth authorization page.
 
 ---
 
@@ -112,12 +113,11 @@ DevGrid Extension
 
 ---
 
-### Notes
+### Responsibilities
 
-Authentication service generates:
-
-* State parameter
-* Authorization request
+* Generate state parameter
+* Generate OAuth authorization request
+* Redirect to GitHub
 
 ---
 
@@ -125,7 +125,7 @@ Authentication service generates:
 
 Purpose:
 
-Handle GitHub authorization callback.
+Handle GitHub OAuth callback.
 
 ---
 
@@ -148,7 +148,8 @@ State Parameter
 * Validate state
 * Validate request integrity
 * Exchange authorization code
-* Create authenticated session
+* Retrieve user information
+* Create authentication session
 
 ---
 
@@ -246,7 +247,7 @@ Examples:
 
 Must not expose secrets.
 
-Must not expose credentials.
+Must not expose OAuth credentials.
 
 ---
 
@@ -278,24 +279,28 @@ No sensitive information returned.
 
 # Standard Response Format
 
-Success Responses
+## Success Response
 
+```json
 {
-"success": true,
-"data": {}
+  "success": true,
+  "data": {}
 }
+```
 
 ---
 
-Error Responses
+## Error Response
 
+```json
 {
-"success": false,
-"error": {
-"code": "",
-"message": ""
+  "success": false,
+  "error": {
+    "code": "",
+    "message": ""
+  }
 }
-}
+```
 
 ---
 
@@ -361,32 +366,68 @@ Public Endpoints:
 
 ---
 
+# Ownership Model
+
+Authentication Service Owns:
+
+* Login
+* Logout
+* OAuth callback handling
+* Session validation
+* Session metadata
+
+---
+
+Extension Owns:
+
+* Repository operations
+* Repository selection
+* Submission operations
+* Markdown operations
+* User workflows
+* GitHub API interactions
+
+---
+
 # Explicitly Forbidden Endpoints
 
 Do not implement:
 
-Repository Endpoints
+---
+
+## Repository Endpoints
 
 Examples:
 
 * create repository
 * update repository
+* delete repository
 * commit file
 * upload file
 
 ---
 
-Submission Endpoints
+## Synchronization Endpoints
+
+Examples:
+
+* sync repository
+* sync submission
+* push changes
+
+---
+
+## Submission Endpoints
 
 Examples:
 
 * save submission
 * get submission
-* sync submission
+* update submission
 
 ---
 
-Statistics Endpoints
+## Statistics Endpoints
 
 Examples:
 
@@ -396,7 +437,7 @@ Examples:
 
 ---
 
-Product Endpoints
+## Product Endpoints
 
 Examples:
 
@@ -404,29 +445,35 @@ Examples:
 * README generation
 * settings management
 
-These belong to:
+These belong exclusively to:
 
 DevGrid-Extension
 
 ---
 
-# Ownership Model
+# Architectural Rules
 
-Authentication Service Owns:
+Correct:
 
-* Login
-* Logout
-* Session Validation
-* Session Metadata
+Extension
+↓
+GitHub
 
 ---
 
-Extension Owns:
+Incorrect:
 
-* Repository Operations
-* Submission Operations
-* Markdown Operations
-* User Workflows
+Extension
+↓
+Authentication Service
+↓
+GitHub
+
+for repository operations.
+
+---
+
+Authentication Service exists only to support authentication.
 
 ---
 
@@ -452,6 +499,9 @@ A successful API contract:
 
 * Remains minimal
 * Remains understandable
-* Supports authentication
-* Protects boundaries
+* Supports OAuth authentication
+* Protects architectural boundaries
 * Prevents backend creep
+* Keeps repository operations inside DevGrid-Extension
+
+The authentication service should remain small, focused, and boring.

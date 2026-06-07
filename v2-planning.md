@@ -1,6 +1,6 @@
 # DevGrid Authentication Service V2 Roadmap
 
-Version: 1.0
+Version: 2.0
 
 Status: ACTIVE
 
@@ -16,7 +16,7 @@ This repository supports the DevGrid Extension authentication architecture.
 
 This repository is not the DevGrid product.
 
-Its purpose is to provide secure GitHub App authentication infrastructure.
+Its purpose is to provide secure GitHub OAuth authentication infrastructure.
 
 Nothing more.
 
@@ -72,9 +72,9 @@ COMPLETED
 
 Approved Architecture:
 
-GitHub App
+GitHub OAuth
 +
-Private Authentication Service
+Minimal Authentication Service
 
 ---
 
@@ -84,13 +84,47 @@ Provide secure authentication without requiring users to manually generate Perso
 
 ---
 
+## Why OAuth Was Selected
+
+GitHub OAuth was selected because:
+
+* Users already understand Sign In With GitHub
+* It minimizes onboarding friction
+* It removes Personal Access Tokens
+* It requires fewer user-facing steps
+* It aligns with DevGrid's adoption goals
+
+---
+
+## Why GitHub Apps Were Rejected
+
+GitHub Apps were evaluated and tested.
+
+The GitHub App installation flow introduced additional onboarding complexity:
+
+Sign In
+↓
+Install App
+↓
+Choose Account
+↓
+Choose Repository Access
+↓
+Authorize
+↓
+Return To Extension
+
+This complexity conflicted with DevGrid's objective of making onboarding as simple as possible.
+
+---
+
 ## Approved Principles
 
-* Least privilege
-* Repository-level authorization
-* Improved onboarding
-* Improved trust
+* Simplicity
+* Trust
+* Adoption
 * Minimal infrastructure
+* Secure authentication
 
 ---
 
@@ -112,7 +146,7 @@ Review security implications of authentication architecture.
 
 * Credential handling
 * Secret protection
-* Token lifecycle
+* OAuth token lifecycle
 * Authentication attack surface
 * Trust boundaries
 * Service responsibilities
@@ -179,7 +213,7 @@ Onboarding Strategy
 
 Architecture Frozen
 
-No additional architectural decisions should be introduced during implementation without a new ADR.
+No additional architectural decisions should be introduced during implementation without explicit approval.
 
 ---
 
@@ -191,11 +225,11 @@ READY
 
 ---
 
-# Phase 4A - Authentication Infrastructure
+# Phase 4A - OAuth Infrastructure
 
 Objective:
 
-Implement secure GitHub App authentication infrastructure.
+Implement secure GitHub OAuth authentication infrastructure.
 
 ---
 
@@ -203,17 +237,17 @@ Implement secure GitHub App authentication infrastructure.
 
 Implement:
 
-* GitHub App integration
-* Authorization flow
+* OAuth authorization flow
+* OAuth callback handling
+* Token exchange
+* Session validation
 * Authentication endpoints
-* Callback handling
-* Token exchange workflows
 
 ---
 
 ## Deliverables
 
-GitHub App configuration
+OAuth configuration
 
 Authentication endpoints
 
@@ -247,7 +281,7 @@ Implement:
 
 * Secret protection
 * Session validation
-* Expiration handling
+* Token expiration handling
 * Revocation handling
 * Abuse prevention
 * Request validation
@@ -356,12 +390,24 @@ The authentication service exists solely to support authentication.
 
 A successful authentication service:
 
-* Protects GitHub App credentials
-* Provides secure authentication
+* Provides Sign In With GitHub
+* Eliminates Personal Access Tokens
 * Requires minimal maintenance
 * Remains independently deployable
 * Remains easy to audit
 * Never becomes an application backend
 * Never becomes a synchronization service
+
+Users should be able to:
+
+Install Extension
+↓
+Sign In With GitHub
+↓
+Select Repository
+↓
+Use DevGrid
+
+with minimal onboarding friction.
 
 The best authentication service is boring, predictable, secure, and rarely changes.

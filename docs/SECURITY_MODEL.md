@@ -1,6 +1,6 @@
 # DevGrid Authentication Security Model
 
-Version: 1.0
+Version: 2.0
 
 Status: DESIGN APPROVED
 
@@ -49,7 +49,7 @@ Prefer simple and secure solutions.
 
 The authentication system must:
 
-* Protect GitHub App credentials
+* Protect OAuth credentials
 * Protect authentication workflows
 * Protect session integrity
 * Prevent unauthorized access
@@ -66,7 +66,7 @@ The following assets are considered security-sensitive.
 
 ## Asset 1
 
-GitHub App Private Key
+OAuth Client Secret
 
 Classification:
 
@@ -94,34 +94,6 @@ FORBIDDEN
 
 ## Asset 2
 
-GitHub Client Secret
-
-Classification:
-
-CRITICAL
-
----
-
-Compromise Impact:
-
-Authentication compromise.
-
----
-
-Storage Location:
-
-Authentication Service Only
-
----
-
-Extension Access:
-
-FORBIDDEN
-
----
-
-## Asset 3
-
 Authentication Sessions
 
 Classification:
@@ -139,6 +111,28 @@ Unauthorized authenticated access.
 Storage Location:
 
 Authentication Service
+
+---
+
+## Asset 3
+
+OAuth Access Tokens
+
+Classification:
+
+HIGH
+
+---
+
+Compromise Impact:
+
+Unauthorized repository access.
+
+---
+
+Storage Location:
+
+DevGrid Extension
 
 ---
 
@@ -219,7 +213,7 @@ Communication Requirements:
 
 Authentication Service
 ↔
-GitHub
+GitHub OAuth
 
 Trust Level:
 
@@ -244,7 +238,12 @@ Trust Level:
 
 HIGH
 
-Used for repository synchronization.
+Used for:
+
+* Repository discovery
+* Repository synchronization
+* File updates
+* Commit creation
 
 ---
 
@@ -258,18 +257,18 @@ DevGrid-Auth
 
 Allowed Secrets:
 
-* GitHub App Private Key
-* Client Secret
+* OAuth Client Secret
 * Service Credentials
+* Internal Authentication Secrets
 
 ---
 
 Secrets must never exist in:
 
-* Browser extension
-* Public repository
-* Client-side code
+* Public repositories
 * Source control
+* Client-side code
+* Browser extension source code
 
 ---
 
@@ -285,7 +284,7 @@ Authentication sessions must support:
 
 ---
 
-Session states:
+Session States
 
 Unauthenticated
 
@@ -338,20 +337,58 @@ HIGH
 
 ---
 
+Description:
+
+Attacker obtains OAuth credentials.
+
+---
+
 Mitigation:
 
-* Secrets stored only in authentication service
-* Secrets never exposed to extension
+* Client Secret stored only in authentication service
+* HTTPS enforcement
+* Secure environment variables
 
 ---
 
 ## Threat 2
+
+OAuth Token Theft
+
+Risk:
+
+HIGH
+
+---
+
+Description:
+
+OAuth access token is exposed from extension storage.
+
+---
+
+Mitigation:
+
+* Store minimal authentication data
+* Remove token on logout
+* Reauthenticate on expiration
+* Request minimum required permissions
+
+---
+
+## Threat 3
 
 Unauthorized Requests
 
 Risk:
 
 MEDIUM
+
+---
+
+Description:
+
+Malicious requests target authentication endpoints.
 
 ---
 
@@ -363,7 +400,7 @@ Mitigation:
 
 ---
 
-## Threat 3
+## Threat 4
 
 Replay Attacks
 
@@ -373,20 +410,32 @@ MEDIUM
 
 ---
 
-Mitigation:
+Description:
 
-* State validation
-* One-time authorization flows
+Authorization response replay.
 
 ---
 
-## Threat 4
+Mitigation:
+
+* State parameter validation
+* One-time authorization flow
+
+---
+
+## Threat 5
 
 Session Abuse
 
 Risk:
 
 MEDIUM
+
+---
+
+Description:
+
+Stale or compromised session continues operating.
 
 ---
 
@@ -398,13 +447,19 @@ Mitigation:
 
 ---
 
-## Threat 5
+## Threat 6
 
 Brute Force Abuse
 
 Risk:
 
 LOW
+
+---
+
+Description:
+
+Repeated authentication attempts.
 
 ---
 
@@ -415,7 +470,7 @@ Mitigation:
 
 ---
 
-## Threat 6
+## Threat 7
 
 GitHub Access Revocation
 
@@ -425,10 +480,17 @@ MEDIUM
 
 ---
 
+Description:
+
+User revokes DevGrid authorization.
+
+---
+
 Mitigation:
 
-* Validation checks
-* Reauthentication workflows
+* Session validation
+* Reauthentication workflow
+* Revocation detection
 
 ---
 
@@ -448,7 +510,7 @@ All communication must use HTTPS.
 
 Secret Isolation
 
-Secrets remain inside authentication service.
+OAuth Client Secret remains inside authentication service.
 
 ---
 
@@ -456,7 +518,7 @@ Secrets remain inside authentication service.
 
 Least Privilege
 
-Request minimum GitHub permissions required.
+Request only the minimum GitHub permissions required by DevGrid.
 
 ---
 
@@ -464,7 +526,7 @@ Request minimum GitHub permissions required.
 
 Input Validation
 
-All requests validated.
+All requests must be validated.
 
 ---
 
@@ -511,7 +573,8 @@ The authentication service must:
 The extension must:
 
 * Store minimal authentication metadata
-* Never store secrets
+* Protect OAuth access tokens
+* Never store OAuth client secrets
 * Reauthenticate when required
 
 ---
@@ -520,7 +583,8 @@ The extension must:
 
 Do not:
 
-* Store GitHub App secrets in extension
+* Store OAuth Client Secret in extension
+* Commit secrets to source control
 * Log secrets
 * Expose credentials through APIs
 * Expose internal implementation details
@@ -571,9 +635,13 @@ Architecture Blockers:
 
 A successful security model:
 
-* Protects secrets
+* Protects OAuth credentials
 * Protects authentication workflows
 * Maintains least privilege
 * Preserves trust
 * Remains understandable
 * Remains auditable
+
+Users should trust DevGrid without needing to understand OAuth internals.
+
+Security should be strong without making onboarding complicated.

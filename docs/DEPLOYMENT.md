@@ -1,6 +1,6 @@
 # DevGrid Authentication Deployment Model
 
-Version: 1.0
+Version: 2.0
 
 Status: DESIGN APPROVED
 
@@ -28,7 +28,7 @@ This document serves as the deployment source of truth.
 
 The authentication service exists solely to support:
 
-GitHub App Authentication
+GitHub OAuth Authentication
 
 It is not an application backend.
 
@@ -65,6 +65,7 @@ Forbidden Usage:
 * Analytics APIs
 * Submission APIs
 * Repository APIs
+* Synchronization APIs
 
 Authentication only.
 
@@ -78,7 +79,7 @@ DevGrid Extension
 ↓
 auth.digitaldevgrid.tech
 ↓
-GitHub
+GitHub OAuth
 ↓
 auth.digitaldevgrid.tech
 ↓
@@ -112,6 +113,8 @@ Purpose:
 
 Developer testing
 
+---
+
 Examples:
 
 localhost
@@ -121,8 +124,8 @@ localhost
 Characteristics:
 
 * Local configuration
-* Local secrets
-* Development GitHub App configuration
+* Local OAuth credentials
+* Local callback URLs
 
 ---
 
@@ -164,9 +167,10 @@ Configuration must be provided through environment variables.
 Never hardcode:
 
 * Secrets
-* Keys
 * Tokens
 * Credentials
+* URLs
+* Environment-specific values
 
 ---
 
@@ -174,33 +178,33 @@ Never hardcode:
 
 Examples:
 
-GitHub App ID
+GITHUB_CLIENT_ID
 
-GitHub App Private Key
+GITHUB_CLIENT_SECRET
 
-GitHub Client Secret
+APP_URL
 
-Application URL
+AUTH_SERVICE_URL
 
-Environment Name
+ENVIRONMENT
+
+SESSION_SECRET
 
 ---
 
-Configuration values must be externalized.
+Configuration values must remain externalized.
 
 ---
 
 # Secret Management
 
----
-
 ## Secret Ownership
 
 Authentication Service owns:
 
-* GitHub App Private Key
-* Client Secret
-* Authentication Secrets
+* OAuth Client Secret
+* Session Secret
+* Internal Authentication Secrets
 
 ---
 
@@ -221,20 +225,21 @@ Runtime configuration
 
 ---
 
-# GitHub App Management
+# OAuth Management
 
 The authentication service owns:
 
-* GitHub App configuration
-* GitHub App credentials
-* GitHub App lifecycle
+* OAuth configuration
+* OAuth callback handling
+* OAuth credential management
+* OAuth lifecycle management
 
 ---
 
 Responsibilities include:
 
 * Initial setup
-* Secret rotation
+* Credential rotation
 * Credential updates
 
 ---
@@ -247,7 +252,7 @@ HTTPS
 
 ---
 
-Communication Paths:
+Communication Paths
 
 Extension
 ↔
@@ -257,7 +262,7 @@ Authentication Service
 
 Authentication Service
 ↔
-GitHub
+GitHub OAuth
 
 ---
 
@@ -289,8 +294,6 @@ Extension must fail gracefully.
 
 # Failure Handling
 
----
-
 ## Authentication Service Unavailable
 
 Extension displays:
@@ -313,7 +316,7 @@ Please try again later.
 
 ## Configuration Failure
 
-Service startup should fail safely.
+Service startup must fail safely.
 
 Do not continue with invalid configuration.
 
@@ -332,8 +335,8 @@ Log:
 
 Do Not Log:
 
-* Secrets
-* Tokens
+* OAuth Access Tokens
+* OAuth Client Secret
 * Credentials
 * Sensitive authentication data
 
@@ -356,16 +359,29 @@ No analytics platform should be introduced without architectural review.
 
 ---
 
-# Backup Philosophy
+# Session Strategy
 
-The authentication service should remain stateless whenever practical.
+The authentication service may maintain lightweight authentication sessions.
 
-Stateless services are easier to:
+The authentication service must not become a user platform.
 
-* Deploy
-* Scale
-* Recover
-* Audit
+Session storage should remain minimal and focused solely on authentication.
+
+---
+
+# Data Storage Philosophy
+
+The authentication service should remain as stateless as practical.
+
+Only authentication-related state may exist.
+
+The service must not store:
+
+* Repository content
+* Submissions
+* Statistics
+* User activity history
+* Product data
 
 ---
 
@@ -392,6 +408,7 @@ owns:
 * Deployment
 * Secrets
 * Runtime configuration
+* OAuth configuration
 * Service monitoring
 
 ---
@@ -400,7 +417,9 @@ DevGrid-Extension owns:
 
 * Product releases
 * User experience
-* Synchronization workflows
+* Repository synchronization
+* GitHub interactions
+* User workflows
 
 ---
 
@@ -425,6 +444,7 @@ Do not introduce:
 * Repository storage
 * Submission storage
 * Product APIs
+* Synchronization APIs
 
 These violate the authentication service mission.
 
@@ -437,9 +457,9 @@ In case of failure:
 1. Restore configuration
 2. Restore secrets
 3. Redeploy service
-4. Validate authentication flow
+4. Validate OAuth flow
 
-The service should be simple enough that recovery remains straightforward.
+The service should remain simple enough that recovery is straightforward.
 
 ---
 
@@ -447,11 +467,23 @@ The service should be simple enough that recovery remains straightforward.
 
 A successful deployment model:
 
-* Protects GitHub App credentials
+* Protects OAuth credentials
 * Remains secure
 * Remains simple
 * Remains independently deployable
 * Requires minimal maintenance
 * Supports DevGrid authentication reliably
+
+Users should experience:
+
+Install Extension
+↓
+Sign In With GitHub
+↓
+Select Repository
+↓
+Use DevGrid
+
+without needing to understand authentication infrastructure.
 
 The authentication service should feel like infrastructure, not a platform.
