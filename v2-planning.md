@@ -1,10 +1,10 @@
 # DevGrid Authentication Service V2 Roadmap
 
-Version: 2.0
+Version: 2.1
 
 Status: ACTIVE
 
-Repository: devgrid-auth
+Repository: DevGrid-Auth
 
 Repository Role: Supporting Repository
 
@@ -44,6 +44,37 @@ This repository does not define product direction.
 
 ---
 
+# Core Architecture
+
+Repository Operations:
+
+DevGrid Extension
+↓
+GitHub
+
+---
+
+Authentication Operations:
+
+DevGrid Extension
+↓
+DevGrid Authentication Service
+↓
+GitHub OAuth
+
+---
+
+The authentication service exists solely to support authentication.
+
+The authentication service must never become:
+
+* A product backend
+* A repository synchronization service
+* A repository proxy
+* A user platform
+
+---
+
 # Current Status
 
 Phase 1
@@ -55,8 +86,20 @@ Phase 2
 Phase 3
 ✅ Complete
 
-Phase 4
-🚧 Ready To Begin
+Phase 4A
+✅ Complete
+
+Phase 4B
+🚧 In Progress
+
+Phase 4C
+⏳ Pending
+
+Phase 4D
+⏳ Pending
+
+Phase 4E
+⏳ Pending
 
 ---
 
@@ -65,6 +108,12 @@ Phase 4
 Status:
 
 COMPLETED
+
+---
+
+## Objective
+
+Determine the most appropriate authentication strategy for DevGrid.
 
 ---
 
@@ -78,12 +127,6 @@ Minimal Authentication Service
 
 ---
 
-## Purpose
-
-Provide secure authentication without requiring users to manually generate Personal Access Tokens.
-
----
-
 ## Why OAuth Was Selected
 
 GitHub OAuth was selected because:
@@ -92,7 +135,7 @@ GitHub OAuth was selected because:
 * It minimizes onboarding friction
 * It removes Personal Access Tokens
 * It requires fewer user-facing steps
-* It aligns with DevGrid's adoption goals
+* It aligns with DevGrid adoption goals
 
 ---
 
@@ -100,7 +143,7 @@ GitHub OAuth was selected because:
 
 GitHub Apps were evaluated and tested.
 
-The GitHub App installation flow introduced additional onboarding complexity:
+The installation flow introduced additional onboarding complexity:
 
 Sign In
 ↓
@@ -114,7 +157,7 @@ Authorize
 ↓
 Return To Extension
 
-This complexity conflicted with DevGrid's objective of making onboarding as simple as possible.
+This conflicted with DevGrid's objective of making onboarding as simple as possible.
 
 ---
 
@@ -123,8 +166,8 @@ This complexity conflicted with DevGrid's objective of making onboarding as simp
 * Simplicity
 * Trust
 * Adoption
-* Minimal infrastructure
-* Secure authentication
+* Minimal Infrastructure
+* Secure Authentication
 
 ---
 
@@ -138,26 +181,26 @@ COMPLETED
 
 ## Objective
 
-Review security implications of authentication architecture.
+Review authentication security requirements.
 
 ---
 
 ## Areas Reviewed
 
-* Credential handling
+* OAuth security
 * Secret protection
-* OAuth token lifecycle
-* Authentication attack surface
+* Authentication lifecycle
 * Trust boundaries
-* Service responsibilities
+* Credential handling
+* Attack surface
 
 ---
 
 ## Outcome
 
-Authentication infrastructure approved.
+Authentication architecture approved.
 
-No architecture blockers identified.
+No blockers identified.
 
 ---
 
@@ -213,47 +256,148 @@ Onboarding Strategy
 
 Architecture Frozen
 
-No additional architectural decisions should be introduced during implementation without explicit approval.
+No additional architectural decisions should be introduced without explicit approval.
 
 ---
 
-# Phase 4 - Implementation
+# Phase 4A - Authentication Service Foundation
 
 Status:
 
-READY
+COMPLETED
 
 ---
 
-# Phase 4A - OAuth Infrastructure
+## Objective
 
-Objective:
-
-Implement secure GitHub OAuth authentication infrastructure.
-
----
-
-## Goals
-
-Implement:
-
-* OAuth authorization flow
-* OAuth callback handling
-* Token exchange
-* Session validation
-* Authentication endpoints
+Establish production-ready authentication infrastructure.
 
 ---
 
 ## Deliverables
 
-OAuth configuration
+* NestJS Service Bootstrap
+* Configuration Management
+* Environment Validation
+* Health Endpoint
+* Render Deployment
+* Domain Configuration
+* Runtime Validation
 
-Authentication endpoints
+---
 
-Authentication services
+## Outcome
 
-Authentication contracts
+Authentication service can:
+
+* Deploy independently
+* Validate configuration
+* Expose health monitoring
+* Support future OAuth implementation
+
+---
+
+# Phase 4B - Authentication Domain Layer
+
+Status:
+
+IN PROGRESS
+
+---
+
+## Objective
+
+Establish authentication contracts and service boundaries.
+
+---
+
+## Deliverables
+
+Authentication Models
+
+Examples:
+
+* AuthenticatedUser
+* OAuthToken
+* OAuthState
+* AuthResult
+
+---
+
+Authentication Interfaces
+
+Examples:
+
+* IOAuthProvider
+* IAuthService
+* ISessionService
+* ITokenService
+
+---
+
+Authentication Errors
+
+Examples:
+
+* AuthError
+* AuthErrorCode
+
+---
+
+## Success Criteria
+
+Authentication contracts exist.
+
+Authentication boundaries are defined.
+
+OAuth implementation can proceed without redesign.
+
+---
+
+# Phase 4C - GitHub OAuth Implementation
+
+Status:
+
+PENDING
+
+---
+
+## Objective
+
+Implement GitHub OAuth authentication.
+
+---
+
+## Deliverables
+
+OAuth Authorization Flow
+
+---
+
+OAuth Callback Handling
+
+---
+
+OAuth State Protection
+
+---
+
+Authorization Code Exchange
+
+---
+
+GitHub User Retrieval
+
+---
+
+Authentication Result Generation
+
+---
+
+Authentication Endpoints
+
+* GET /auth/login
+* GET /auth/callback
 
 ---
 
@@ -267,34 +411,99 @@ without generating Personal Access Tokens.
 
 ---
 
-# Phase 4B - Security Hardening
+Authentication Service can:
 
-Objective:
-
-Ensure authentication infrastructure meets security requirements.
+* Perform OAuth exchange
+* Validate OAuth state
+* Retrieve authenticated user
+* Return authentication result
 
 ---
 
-## Goals
+# Phase 4D - Authentication Lifecycle
 
-Implement:
+Status:
 
-* Secret protection
-* Session validation
-* Token expiration handling
-* Revocation handling
-* Abuse prevention
-* Request validation
+PENDING
+
+---
+
+## Objective
+
+Implement authentication lifecycle management.
 
 ---
 
 ## Deliverables
 
-Secure credential management
+Authentication Validation
 
-Secure authentication lifecycle
+---
 
-Improved service resilience
+Logout Flow
+
+---
+
+Revocation Handling
+
+---
+
+Expiration Handling
+
+---
+
+Authentication State Management
+
+---
+
+Authentication Endpoints
+
+* GET /session/validate
+* GET /session/me
+* POST /auth/logout
+
+---
+
+## Success Criteria
+
+Authentication remains reliable.
+
+Invalid authentication is detected correctly.
+
+Users remain authenticated until:
+
+* Logout
+* Authorization Revocation
+* Authentication Invalidity
+
+---
+
+Daily login requirements are not acceptable.
+
+---
+
+# Phase 4E - Security Hardening
+
+Status:
+
+PENDING
+
+---
+
+## Objective
+
+Ensure production-grade authentication security.
+
+---
+
+## Deliverables
+
+* Request Validation
+* Input Validation
+* Error Sanitization
+* Rate Limiting
+* Security Headers
+* Abuse Prevention
 
 ---
 
@@ -302,85 +511,96 @@ Improved service resilience
 
 Authentication failures are handled safely.
 
-Revoked access is detected correctly.
-
-Expired sessions are handled gracefully.
+Authentication infrastructure remains secure and auditable.
 
 ---
 
-# Phase 4C - Deployment
+# Phase 4F - Production Validation
 
-Objective:
+Status:
 
-Deploy production-ready authentication infrastructure.
-
----
-
-## Target Domain
-
-auth.digitaldevgrid.tech
+PENDING
 
 ---
 
-## Goals
+## Objective
 
-Implement:
-
-* Production deployment
-* Environment management
-* Secret management
-* Monitoring
-* Operational readiness
+Validate complete authentication behavior.
 
 ---
 
-## Deliverables
+## Validation Areas
 
-Deployment configuration
+Authentication Flow
 
-Runtime configuration
+---
 
-Operational documentation
+OAuth Callback Flow
+
+---
+
+Authentication Validation
+
+---
+
+Logout Flow
+
+---
+
+Revocation Handling
+
+---
+
+Deployment Validation
+
+---
+
+Environment Validation
 
 ---
 
 ## Success Criteria
 
-Authentication infrastructure is:
+Authentication service is:
 
-* Secure
 * Stable
+* Secure
 * Maintainable
-* Independently deployable
+* Production Ready
 
 ---
 
 # Explicitly Out Of Scope
 
-This repository must not implement:
+This repository must never implement:
 
-* Repository synchronization
-* Submission processing
-* Markdown generation
+* Repository Synchronization
+* Repository Discovery
+* Commit Creation
+* File Updates
+* Submission Processing
+* Markdown Generation
 * Statistics
 * Analytics
-* User databases
-* Product features
-* GitHub repository management
+* Product Features
+* GitHub Repository Management
 
-These belong to devgrid-extension.
+These belong to:
+
+devgrid-extension
 
 ---
 
 # Engineering Rules
 
-Phase 4 must not:
+Implementation must not introduce:
 
-* Introduce product logic
-* Introduce sync workflows
-* Introduce analytics
-* Introduce repository storage
-* Introduce backend-driven DevGrid workflows
+* Product Logic
+* Repository Storage
+* Repository Synchronization
+* Analytics Systems
+* User Platforms
+* Backend-Driven DevGrid Workflows
 
 The authentication service exists solely to support authentication.
 
@@ -395,6 +615,7 @@ A successful authentication service:
 * Requires minimal maintenance
 * Remains independently deployable
 * Remains easy to audit
+* Remains easy to understand
 * Never becomes an application backend
 * Never becomes a synchronization service
 

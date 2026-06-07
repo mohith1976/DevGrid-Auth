@@ -1,6 +1,6 @@
 # DevGrid Authentication API Contract
 
-Version: 2.0
+Version: 2.1
 
 Status: DESIGN APPROVED
 
@@ -14,26 +14,33 @@ This document defines the public API contract exposed by DevGrid Authentication 
 
 All communication between:
 
-DevGrid-Extension
+DevGrid Extension
 ↓
-DevGrid-Auth
+DevGrid Authentication Service
 
 must occur through endpoints defined here.
 
-Endpoints not defined in this document must not be implemented without architectural review.
+Endpoints not defined in this document must not be implemented without architectural review and approval.
 
 ---
 
 # API Philosophy
 
-The authentication service is not an application backend.
+The authentication service exists solely to support authentication.
 
-The API exists solely to support:
+The authentication service is not:
 
-* Authentication
-* Session validation
-* OAuth token exchange
-* Credential lifecycle management
+* An application backend
+* A repository management service
+* A synchronization service
+* A user platform
+
+The API exists only to support:
+
+* GitHub OAuth authentication
+* Authentication validation
+* Authentication lifecycle management
+* Credential protection
 
 Nothing more.
 
@@ -72,7 +79,7 @@ Base Path:
 The service exposes only:
 
 * Authentication Endpoints
-* Session Endpoints
+* Authentication State Endpoints
 * Health Endpoints
 
 No product endpoints.
@@ -115,9 +122,9 @@ DevGrid Extension
 
 ### Responsibilities
 
-* Generate state parameter
-* Generate OAuth authorization request
-* Redirect to GitHub
+* Generate OAuth state parameter
+* Generate authorization request
+* Redirect to GitHub OAuth
 
 ---
 
@@ -131,31 +138,42 @@ Handle GitHub OAuth callback.
 
 ### Called By
 
-GitHub
+GitHub OAuth
 
 ---
 
 ### Inputs
 
-Authorization Code
-
-State Parameter
+* Authorization Code
+* State Parameter
 
 ---
 
 ### Responsibilities
 
-* Validate state
+* Validate state parameter
 * Validate request integrity
 * Exchange authorization code
-* Retrieve user information
-* Create authentication session
+* Retrieve authenticated user
+* Generate authentication result
+
+---
+
+### Response
+
+Authentication Result
+
+May include:
+
+* OAuth Access Token
+* User Metadata
+* Authentication Metadata
 
 ---
 
 ### Notes
 
-Not called directly by extension.
+Not called directly by the extension.
 
 ---
 
@@ -163,7 +181,7 @@ Not called directly by extension.
 
 Purpose:
 
-Terminate authenticated session.
+Terminate current authentication state.
 
 ---
 
@@ -175,8 +193,8 @@ DevGrid Extension
 
 ### Responsibilities
 
-* Invalidate session
-* Remove active authentication state
+* Invalidate authentication state
+* Complete logout workflow
 
 ---
 
@@ -186,7 +204,11 @@ Logout Success
 
 ---
 
-# Session Endpoints
+# Authentication State Endpoints
+
+These endpoints exist solely to support authentication lifecycle management.
+
+They must not evolve into user management endpoints.
 
 ---
 
@@ -194,7 +216,7 @@ Logout Success
 
 Purpose:
 
-Determine session validity.
+Determine whether current authentication remains valid.
 
 ---
 
@@ -206,11 +228,11 @@ DevGrid Extension
 
 ### Response
 
-Valid
+Authenticated
 
 or
 
-Invalid
+Unauthenticated
 
 ---
 
@@ -219,7 +241,15 @@ Invalid
 * Extension startup
 * Popup open
 * Manual validation
-* Sensitive operations
+* Authentication-sensitive operations
+
+---
+
+### Notes
+
+This endpoint validates authentication state.
+
+It is not a general-purpose user session endpoint.
 
 ---
 
@@ -237,17 +267,20 @@ Authentication metadata only.
 
 Examples:
 
-* GitHub username
-* GitHub user id
-* Session status
+* GitHub Username
+* GitHub User ID
+* Authentication Status
 
 ---
 
 ### Notes
 
-Must not expose secrets.
+Must not expose:
 
-Must not expose OAuth credentials.
+* OAuth Access Tokens
+* OAuth Client Secrets
+* Internal Credentials
+* Sensitive Authentication Data
 
 ---
 
@@ -306,43 +339,43 @@ No sensitive information returned.
 
 # Error Codes
 
-AUTH_REQUIRED
+## AUTH_REQUIRED
 
 Authentication required.
 
 ---
 
-AUTH_INVALID
+## AUTH_INVALID
 
 Authentication invalid.
 
 ---
 
-AUTH_EXPIRED
+## AUTH_EXPIRED
 
 Authentication expired.
 
 ---
 
-AUTH_REVOKED
+## AUTH_REVOKED
 
 GitHub authorization revoked.
 
 ---
 
-INVALID_REQUEST
+## INVALID_REQUEST
 
 Request malformed.
 
 ---
 
-RATE_LIMITED
+## RATE_LIMITED
 
 Too many requests.
 
 ---
 
-SERVER_ERROR
+## SERVER_ERROR
 
 Unexpected failure.
 
@@ -352,17 +385,17 @@ Unexpected failure.
 
 Protected Endpoints:
 
-* session/validate
-* session/me
-* logout
+* /session/validate
+* /session/me
+* /auth/logout
 
 ---
 
 Public Endpoints:
 
-* auth/login
-* auth/callback
-* health
+* /auth/login
+* /auth/callback
+* /health
 
 ---
 
@@ -373,19 +406,20 @@ Authentication Service Owns:
 * Login
 * Logout
 * OAuth callback handling
-* Session validation
-* Session metadata
+* Authentication validation
+* Authentication metadata
 
 ---
 
-Extension Owns:
+DevGrid Extension Owns:
 
-* Repository operations
 * Repository selection
-* Submission operations
-* Markdown operations
+* Repository synchronization
+* Commit creation
+* File updates
 * User workflows
-* GitHub API interactions
+* Product functionality
+* Direct GitHub API communication
 
 ---
 
@@ -399,11 +433,11 @@ Do not implement:
 
 Examples:
 
-* create repository
-* update repository
-* delete repository
-* commit file
-* upload file
+* Create Repository
+* Update Repository
+* Delete Repository
+* Commit File
+* Upload File
 
 ---
 
@@ -411,9 +445,9 @@ Examples:
 
 Examples:
 
-* sync repository
-* sync submission
-* push changes
+* Sync Repository
+* Sync Submission
+* Push Changes
 
 ---
 
@@ -421,9 +455,9 @@ Examples:
 
 Examples:
 
-* save submission
-* get submission
-* update submission
+* Save Submission
+* Get Submission
+* Update Submission
 
 ---
 
@@ -431,9 +465,9 @@ Examples:
 
 Examples:
 
-* user stats
-* progress metrics
-* analytics
+* User Stats
+* Progress Metrics
+* Analytics
 
 ---
 
@@ -441,23 +475,35 @@ Examples:
 
 Examples:
 
-* markdown generation
-* README generation
-* settings management
+* Markdown Generation
+* README Generation
+* Settings Management
+
+---
 
 These belong exclusively to:
 
-DevGrid-Extension
+DevGrid Extension
 
 ---
 
 # Architectural Rules
 
-Correct:
+Repository Operations:
 
 Extension
 ↓
 GitHub
+
+---
+
+Authentication Operations:
+
+Extension
+↓
+Authentication Service
+↓
+GitHub OAuth
 
 ---
 
@@ -473,7 +519,7 @@ for repository operations.
 
 ---
 
-Authentication Service exists only to support authentication.
+The authentication service exists only to support authentication.
 
 ---
 
@@ -502,6 +548,6 @@ A successful API contract:
 * Supports OAuth authentication
 * Protects architectural boundaries
 * Prevents backend creep
-* Keeps repository operations inside DevGrid-Extension
+* Keeps repository operations inside DevGrid Extension
 
-The authentication service should remain small, focused, and boring.
+The authentication service should remain small, focused, secure, and boring.

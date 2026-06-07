@@ -1,10 +1,20 @@
 /**
- * Domain Models
+ * Domain Layer Public Exports
  * 
- * Central location for domain types and interfaces.
- * Examples: User, Session, AuthToken, OAuth types
- * 
- * Currently empty - domain models will be added as features are implemented.
+ * Top-level domain exports for authentication subdomain.
  */
 
-export {};
+export type {
+  AuthenticatedUser,
+  OAuthToken,
+  OAuthState,
+  AuthSession,
+  AuthResult,
+  AuthError,
+  IOAuthProvider,
+  IAuthService,
+  ISessionService,
+  ITokenService,
+} from './auth/index.js';
+
+export { AuthErrorCode } from './auth/index.js';

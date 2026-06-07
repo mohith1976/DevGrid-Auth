@@ -1,6 +1,6 @@
-# DevGrid Authentication Deployment Model
+# DevGrid Authentication Service Deployment Guide
 
-Version: 2.0
+Version: 2.1
 
 Status: DESIGN APPROVED
 
@@ -10,471 +10,436 @@ Repository: DevGrid-Auth
 
 # Purpose
 
-This document defines:
+This document defines the deployment architecture for DevGrid Authentication Service.
 
-* Deployment architecture
-* Environment strategy
-* Secret management strategy
-* Runtime requirements
-* Operational requirements
+The deployment architecture must remain:
 
-for DevGrid Authentication Service.
+* Simple
+* Secure
+* Maintainable
+* Independently Deployable
 
-This document serves as the deployment source of truth.
+The authentication service exists solely to support GitHub OAuth authentication.
 
----
+It is not a backend platform.
 
-# Deployment Philosophy
+It is not a product service.
 
-The authentication service exists solely to support:
-
-GitHub OAuth Authentication
-
-It is not an application backend.
-
-Deployment should prioritize:
-
-* Simplicity
-* Reliability
-* Security
-* Maintainability
-
-Avoid unnecessary infrastructure.
-
-Avoid premature complexity.
+It is not a repository synchronization service.
 
 ---
 
-# Target Domain
+# Deployment Goals
 
-Production:
+The deployment architecture must:
+
+* Support GitHub OAuth
+* Protect OAuth secrets
+* Minimize operational complexity
+* Support independent deployment
+* Support production reliability
+
+---
+
+# Production Deployment
+
+Production Environment:
 
 auth.digitaldevgrid.tech
 
 ---
 
-Purpose:
+Deployment Platform:
 
-Authentication Service Only
-
----
-
-Forbidden Usage:
-
-* Product APIs
-* Analytics APIs
-* Submission APIs
-* Repository APIs
-* Synchronization APIs
-
-Authentication only.
+Render
 
 ---
 
-# Runtime Architecture
+Authentication Service:
 
-User
-↓
+DevGrid-Auth
+
+---
+
+# Deployment Architecture
+
 DevGrid Extension
 ↓
-auth.digitaldevgrid.tech
+Authentication Service
+(auth.digitaldevgrid.tech)
 ↓
 GitHub OAuth
-↓
-auth.digitaldevgrid.tech
-↓
+
+---
+
+Repository Operations
+
 DevGrid Extension
+↓
+GitHub
 
 ---
 
-# Deployment Model
-
-The authentication service must remain:
-
-* Independently deployable
-* Independently maintainable
-* Independently scalable
-
-No direct runtime dependency on:
-
-DevGrid-Extension
+The authentication service is not involved in repository operations.
 
 ---
 
-# Environment Strategy
+# Hosting Strategy
 
-Three environments are supported.
+Hosting Provider:
+
+Render
 
 ---
 
-## Local Development
+Service Type:
+
+Web Service
+
+---
+
+Runtime:
+
+Node.js
+
+---
+
+Framework:
+
+NestJS
+
+---
+
+Deployment Model:
+
+Git Push
+↓
+Render Build
+↓
+Render Deploy
+
+---
+
+# Domain Configuration
+
+Production Domain:
+
+auth.digitaldevgrid.tech
+
+---
 
 Purpose:
 
-Developer testing
+Authentication Infrastructure
 
 ---
 
-Examples:
+Requirements:
 
-localhost
-
----
-
-Characteristics:
-
-* Local configuration
-* Local OAuth credentials
-* Local callback URLs
-
----
-
-## Staging
-
-Purpose:
-
-Pre-production validation
-
----
-
-Characteristics:
-
-* Production-like environment
-* Safe testing environment
-
----
-
-## Production
-
-Purpose:
-
-User-facing authentication
-
----
-
-Characteristics:
-
-* Stable
-* Secure
-* Monitored
+* HTTPS Enabled
+* Valid TLS Certificate
+* Publicly Accessible
 
 ---
 
 # Environment Configuration
 
-Configuration must be provided through environment variables.
+All configuration must be environment-driven.
 
-Never hardcode:
+Do not hardcode:
 
 * Secrets
-* Tokens
-* Credentials
-* URLs
-* Environment-specific values
+* Domains
+* OAuth Credentials
+* Runtime Configuration
 
 ---
 
-# Required Configuration
+# Required Environment Variables
 
-Examples:
+## NODE_ENV
+
+Purpose:
+
+Runtime Environment
+
+---
+
+Example:
+
+```env id="vff7d0"
+NODE_ENV=production
+```
+
+---
+
+## GITHUB_CLIENT_ID
+
+Purpose:
+
+GitHub OAuth Client ID
+
+---
+
+Example:
+
+```env id="kgm1cx"
+GITHUB_CLIENT_ID=xxxxxxxx
+```
+
+---
+
+## GITHUB_CLIENT_SECRET
+
+Purpose:
+
+GitHub OAuth Client Secret
+
+---
+
+Example:
+
+```env id="uvv0sn"
+GITHUB_CLIENT_SECRET=xxxxxxxx
+```
+
+---
+
+## AUTH_SERVICE_URL
+
+Purpose:
+
+Authentication Service Base URL
+
+---
+
+Example:
+
+```env id="emfxa0"
+AUTH_SERVICE_URL=https://auth.digitaldevgrid.tech
+```
+
+---
+
+## SESSION_SECRET
+
+Purpose:
+
+Authentication Security Secret
+
+Used for authentication lifecycle operations when required.
+
+---
+
+Example:
+
+```env id="md6tt0"
+SESSION_SECRET=xxxxxxxx
+```
+
+---
+
+# Local Development Configuration
+
+Example:
+
+```env id="tbiv0j"
+NODE_ENV=development
+
+PORT=3000
+
+GITHUB_CLIENT_ID=xxxxxxxx
+
+GITHUB_CLIENT_SECRET=xxxxxxxx
+
+AUTH_SERVICE_URL=https://auth.digitaldevgrid.tech
+
+SESSION_SECRET=xxxxxxxx
+```
+
+---
+
+# Render Configuration
+
+Required Variables:
+
+```text id="b6uxx4"
+NODE_ENV
 
 GITHUB_CLIENT_ID
 
 GITHUB_CLIENT_SECRET
 
-APP_URL
-
 AUTH_SERVICE_URL
 
-ENVIRONMENT
-
 SESSION_SECRET
+```
 
 ---
 
-Configuration values must remain externalized.
+Do not commit secrets.
+
+Do not store production credentials in source control.
 
 ---
 
-# Secret Management
+# Build Requirements
 
-## Secret Ownership
+Deployment must fail if:
 
-Authentication Service owns:
+* Required environment variables are missing
+* Configuration validation fails
+* Application bootstrap fails
 
-* OAuth Client Secret
-* Session Secret
-* Internal Authentication Secrets
+Fail fast.
 
----
-
-## Secret Storage Rules
-
-Secrets must never exist in:
-
-* Source control
-* Public repositories
-* Browser extension
-* Client-side code
+Do not allow partially configured deployments.
 
 ---
 
-Secrets must be loaded through:
+# Health Monitoring
 
-Runtime configuration
+Authentication Service must expose:
 
----
-
-# OAuth Management
-
-The authentication service owns:
-
-* OAuth configuration
-* OAuth callback handling
-* OAuth credential management
-* OAuth lifecycle management
+```text id="1xrn9u"
+GET /api/v1/health
+```
 
 ---
 
-Responsibilities include:
+Expected Response:
 
-* Initial setup
-* Credential rotation
-* Credential updates
-
----
-
-# Network Requirements
-
-All communication must use:
-
-HTTPS
+```json id="srtq34"
+{
+  "success": true,
+  "service": "devgrid-auth",
+  "status": "healthy"
+}
+```
 
 ---
 
-Communication Paths
+Purpose:
 
-Extension
-↔
-Authentication Service
-
----
-
-Authentication Service
-↔
-GitHub OAuth
+* Deployment Validation
+* Runtime Monitoring
+* Operational Verification
 
 ---
 
-Extension
-↔
-GitHub
+# Logging Requirements
+
+Allowed:
+
+* Startup Events
+* Deployment Events
+* Authentication Events
+* Operational Diagnostics
 
 ---
 
-Unencrypted communication is forbidden.
-
----
-
-# Availability Requirements
-
-Authentication should remain available during:
-
-* Extension startup
-* Login workflows
-* Session validation
-
----
-
-If unavailable:
-
-Extension must fail gracefully.
-
----
-
-# Failure Handling
-
-## Authentication Service Unavailable
-
-Extension displays:
-
-Authentication service unavailable.
-
-Please try again later.
-
----
-
-## GitHub Unavailable
-
-Extension displays:
-
-GitHub is currently unavailable.
-
-Please try again later.
-
----
-
-## Configuration Failure
-
-Service startup must fail safely.
-
-Do not continue with invalid configuration.
-
----
-
-# Logging Strategy
-
-Log:
-
-* Startup events
-* Authentication events
-* Validation failures
-* Service errors
-
----
-
-Do Not Log:
+Forbidden:
 
 * OAuth Access Tokens
-* OAuth Client Secret
-* Credentials
-* Sensitive authentication data
-
----
-
-# Monitoring Strategy
-
-Monitor:
-
-* Service health
-* Authentication failures
-* Validation failures
-* Rate limit events
-
----
-
-Monitoring must remain minimal.
-
-No analytics platform should be introduced without architectural review.
-
----
-
-# Session Strategy
-
-The authentication service may maintain lightweight authentication sessions.
-
-The authentication service must not become a user platform.
-
-Session storage should remain minimal and focused solely on authentication.
-
----
-
-# Data Storage Philosophy
-
-The authentication service should remain as stateless as practical.
-
-Only authentication-related state may exist.
-
-The service must not store:
-
-* Repository content
-* Submissions
-* Statistics
-* User activity history
-* Product data
+* OAuth Client Secrets
+* Authorization Codes
+* Internal Secrets
 
 ---
 
 # Scaling Philosophy
 
-The service is expected to have:
+The authentication service should remain lightweight.
 
-Low operational load
+The service exists only to support authentication.
 
----
+Avoid introducing:
 
-Scaling complexity should not be introduced until justified by real usage.
+* Databases
+* Analytics Platforms
+* Background Workers
+* Repository Processing Pipelines
+* Product Services
 
----
-
-# Operational Ownership
-
-Repository:
-
-DevGrid-Auth
-
-owns:
-
-* Deployment
-* Secrets
-* Runtime configuration
-* OAuth configuration
-* Service monitoring
+unless explicitly approved through architecture review.
 
 ---
 
-DevGrid-Extension owns:
+# Operational Responsibilities
 
-* Product releases
-* User experience
-* Repository synchronization
-* GitHub interactions
-* User workflows
+Authentication Service Owns:
 
----
-
-# Security Requirements
-
-Deployment must ensure:
-
-* HTTPS enforcement
-* Secret isolation
-* Configuration validation
-* Secure runtime configuration
+* OAuth Authentication
+* OAuth Callback Handling
+* Token Exchange
+* Authentication Validation
+* Authentication Lifecycle
 
 ---
 
-# Explicitly Forbidden
+DevGrid Extension Owns:
 
-Do not introduce:
-
-* User databases
-* Analytics infrastructure
-* Queue systems
-* Repository storage
-* Submission storage
-* Product APIs
-* Synchronization APIs
-
-These violate the authentication service mission.
+* Repository Discovery
+* Repository Synchronization
+* Commit Creation
+* File Updates
+* Product Features
+* User Workflows
 
 ---
 
-# Recovery Strategy
+# Disaster Recovery
 
-In case of failure:
+If the authentication service becomes unavailable:
 
-1. Restore configuration
-2. Restore secrets
-3. Redeploy service
-4. Validate OAuth flow
+Expected Impact:
 
-The service should remain simple enough that recovery is straightforward.
+* New logins may fail
+* Reauthentication may fail
 
 ---
 
-# Definition Of Success
+Repository Operations already in progress remain unaffected.
 
-A successful deployment model:
+Reason:
 
-* Protects OAuth credentials
-* Remains secure
-* Remains simple
+Repository operations occur directly between:
+
+DevGrid Extension
+↓
+GitHub
+
+---
+
+# Explicitly Out Of Scope
+
+The deployment architecture must not support:
+
+* Repository Synchronization
+* Submission Processing
+* Analytics
+* Statistics
+* Product Features
+* GitHub Repository Management
+
+These belong to:
+
+DevGrid Extension
+
+---
+
+# Deployment Success Criteria
+
+A successful deployment:
+
+* Supports GitHub OAuth
+* Protects OAuth secrets
 * Remains independently deployable
-* Requires minimal maintenance
-* Supports DevGrid authentication reliably
+* Remains easy to operate
+* Remains easy to audit
+* Maintains architectural boundaries
 
-Users should experience:
+Users should be able to:
 
 Install Extension
 ↓
@@ -484,6 +449,6 @@ Select Repository
 ↓
 Use DevGrid
 
-without needing to understand authentication infrastructure.
+without knowing the authentication service exists.
 
-The authentication service should feel like infrastructure, not a platform.
+The best deployment is stable, secure, boring, and rarely requires attention.

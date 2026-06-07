@@ -7,10 +7,12 @@
 
 import { Module } from '@nestjs/common';
 import { HealthController } from './routes/health.controller.js';
+import { AuthController } from './routes/auth.controller.js';
+import { OAuthService } from './services/oauth/oauth.service.js';
 
 @Module({
   imports: [],
-  controllers: [HealthController],
-  providers: [],
+  controllers: [HealthController, AuthController],
+  providers: [OAuthService],
 })
 export class AppModule {}

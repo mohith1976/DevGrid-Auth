@@ -1,6 +1,6 @@
 # DevGrid Authentication Security Model
 
-Version: 2.0
+Version: 2.1
 
 Status: DESIGN APPROVED
 
@@ -10,57 +10,37 @@ Repository: DevGrid-Auth
 
 # Purpose
 
-This document defines:
+This document defines the security requirements for DevGrid Authentication Service.
 
-* Security boundaries
-* Protected assets
-* Trust relationships
-* Threat assumptions
-* Security requirements
+The objective is to:
 
-for DevGrid Authentication Service.
+* Protect authentication credentials
+* Protect OAuth infrastructure
+* Protect user trust
+* Minimize attack surface
+* Maintain simple operational requirements
 
-This document serves as the security source of truth.
+The authentication service exists solely to support authentication.
 
 ---
 
-# Security Philosophy
+# Security Principles
 
-Security exists to:
+All security decisions must follow:
 
-* Protect users
-* Protect credentials
-* Protect repository access
-* Preserve trust
+* Least Privilege
+* Simplicity
+* Defense In Depth
+* Explicit Trust Boundaries
+* Minimal Credential Exposure
 
-Security should remain:
-
-* Understandable
-* Auditable
-* Maintainable
+Security controls must remain proportional to actual risk.
 
 Avoid unnecessary complexity.
-
-Prefer simple and secure solutions.
-
----
-
-# Security Objectives
-
-The authentication system must:
-
-* Protect OAuth credentials
-* Protect authentication workflows
-* Protect session integrity
-* Prevent unauthorized access
-* Prevent abuse
-* Preserve least privilege
 
 ---
 
 # Protected Assets
-
-The following assets are considered security-sensitive.
 
 ---
 
@@ -68,49 +48,52 @@ The following assets are considered security-sensitive.
 
 OAuth Client Secret
 
-Classification:
+---
 
-CRITICAL
+### Storage Location
+
+Authentication Service
 
 ---
 
-Compromise Impact:
+### Exposure Policy
 
-Complete authentication compromise.
+Must never be exposed to:
+
+* Extension
+* Users
+* Browsers
+* Client-side code
 
 ---
 
-Storage Location:
+### Security Level
 
-Authentication Service Only
-
----
-
-Extension Access:
-
-FORBIDDEN
+Critical
 
 ---
 
 ## Asset 2
 
-Authentication Sessions
-
-Classification:
-
-HIGH
+Authentication State
 
 ---
 
-Compromise Impact:
+### Purpose
 
-Unauthorized authenticated access.
+Support:
+
+* Authentication validation
+* Logout
+* Revocation handling
+* Expiration handling
+* Reauthentication workflows
 
 ---
 
-Storage Location:
+### Security Level
 
-Authentication Service
+High
 
 ---
 
@@ -118,59 +101,46 @@ Authentication Service
 
 OAuth Access Tokens
 
-Classification:
+---
 
-HIGH
+### Purpose
+
+Allow authenticated GitHub communication.
 
 ---
 
-Compromise Impact:
+### Security Level
 
-Unauthorized repository access.
+High
 
 ---
 
-Storage Location:
+### Handling Requirements
 
-DevGrid Extension
+Protect from:
+
+* Accidental disclosure
+* Logging
+* Debug output
+* Unauthorized access
 
 ---
 
 ## Asset 4
 
-Repository Authorization
+User Authentication Metadata
 
-Classification:
+Examples:
 
-HIGH
-
----
-
-Compromise Impact:
-
-Unauthorized repository operations.
+* GitHub User ID
+* GitHub Username
+* Authentication Status
 
 ---
 
-## Asset 5
+### Security Level
 
-User Authentication State
-
-Classification:
-
-MEDIUM
-
----
-
-Compromise Impact:
-
-Session disruption.
-
----
-
-Storage Location:
-
-Extension
+Moderate
 
 ---
 
@@ -180,468 +150,343 @@ Extension
 
 ## Boundary 1
 
-User
+DevGrid Extension
 ↔
-Extension
+Authentication Service
 
-Trust Level:
+---
 
-HIGH
+### Requirements
+
+* HTTPS Only
+* Trusted Requests
+* Authentication Validation
 
 ---
 
 ## Boundary 2
 
-Extension
-↔
 Authentication Service
-
-Trust Level:
-
-MEDIUM
+↔
+GitHub OAuth
 
 ---
 
-Communication Requirements:
+### Requirements
 
-* HTTPS only
-* Valid requests only
+* HTTPS Only
+* OAuth State Validation
+* Verified Responses
 
 ---
 
 ## Boundary 3
 
-Authentication Service
-↔
-GitHub OAuth
-
-Trust Level:
-
-HIGH
-
----
-
-Communication Requirements:
-
-* HTTPS only
-* GitHub verified responses only
-
----
-
-## Boundary 4
-
-Extension
+DevGrid Extension
 ↔
 GitHub
 
-Trust Level:
+---
 
-HIGH
+### Purpose
 
-Used for:
+Repository Operations
 
-* Repository discovery
-* Repository synchronization
-* File updates
-* Commit creation
+Examples:
+
+* Repository Discovery
+* Repository Synchronization
+* Commit Creation
+* File Updates
 
 ---
 
-# Secret Ownership
+### Requirements
 
-Secrets belong exclusively to:
-
-DevGrid-Auth
+* HTTPS Only
 
 ---
 
-Allowed Secrets:
+# Authentication Lifecycle Security
 
-* OAuth Client Secret
-* Service Credentials
-* Internal Authentication Secrets
+Authentication lifecycle must support:
 
----
-
-Secrets must never exist in:
-
-* Public repositories
-* Source control
-* Client-side code
-* Browser extension source code
+* Authentication Validation
+* Authentication Expiration
+* Authorization Revocation
+* Logout
+* Reauthentication
 
 ---
 
-# Session Security Model
+The authentication service must not evolve into:
 
-Authentication sessions must support:
-
-* Creation
-* Validation
-* Expiration
-* Revocation
-* Destruction
+* User Platform
+* Backend Application
+* Repository Synchronization Service
 
 ---
 
-Session States
+# OAuth Security Requirements
 
-Unauthenticated
+---
 
-↓
+## OAuth State Protection
+
+Every OAuth request must include:
+
+* State Parameter
+
+---
+
+State must be:
+
+* Unique
+* Unpredictable
+* Short-Lived
+
+---
+
+Purpose:
+
+Prevent:
+
+* CSRF Attacks
+* OAuth Request Forgery
+
+---
+
+## OAuth Callback Validation
+
+Authentication Service must validate:
+
+* State Parameter
+* Request Integrity
+
+before performing token exchange.
+
+---
+
+## Authorization Code Exchange
+
+Authorization codes must:
+
+* Be used once
+* Be exchanged immediately
+* Never be reused
+
+---
+
+# Authentication Validation Requirements
+
+Authentication validation may occur during:
+
+* Extension Startup
+* Popup Open
+* Manual Refresh
+* Authentication-Sensitive Operations
+
+---
+
+Validation should determine:
 
 Authenticated
 
-↓
-
-Expired
-
 or
 
-Revoked
-
-↓
-
-Reauthenticate
+Unauthenticated
 
 ---
 
-# Session Validation Requirements
+Validation exists to protect authentication integrity.
 
-Validation must occur during:
-
-* Extension startup
-* Popup open
-* Sensitive operations
-* Manual refresh
+Validation does not imply complex session infrastructure.
 
 ---
 
-Validation failures must result in:
-
-Reauthentication
+# Credential Storage Requirements
 
 ---
 
-# Threat Model
+## Authentication Service
+
+May Store:
+
+* OAuth Client Secret
+* Authentication State
+* Security Metadata
 
 ---
 
-## Threat 1
+Must Never Store:
 
-Credential Theft
-
-Risk:
-
-HIGH
+* Repository Data
+* Submission Data
+* Product Data
 
 ---
 
-Description:
+## DevGrid Extension
 
-Attacker obtains OAuth credentials.
+May Store:
 
----
+* OAuth Access Token
+* Authentication Metadata
+* Repository Configuration
 
-Mitigation:
+inside:
 
-* Client Secret stored only in authentication service
-* HTTPS enforcement
-* Secure environment variables
-
----
-
-## Threat 2
-
-OAuth Token Theft
-
-Risk:
-
-HIGH
+chrome.storage.local
 
 ---
 
-Description:
+Must Never Store:
 
-OAuth access token is exposed from extension storage.
-
----
-
-Mitigation:
-
-* Store minimal authentication data
-* Remove token on logout
-* Reauthenticate on expiration
-* Request minimum required permissions
+* OAuth Client Secret
+* Internal Service Secrets
 
 ---
 
-## Threat 3
+# Logging Requirements
 
-Unauthorized Requests
+Logs must never contain:
 
-Risk:
-
-MEDIUM
-
----
-
-Description:
-
-Malicious requests target authentication endpoints.
+* OAuth Access Tokens
+* OAuth Client Secrets
+* Authorization Codes
+* Internal Secrets
 
 ---
 
-Mitigation:
+Allowed:
 
-* Request validation
-* Session validation
-* Authentication enforcement
-
----
-
-## Threat 4
-
-Replay Attacks
-
-Risk:
-
-MEDIUM
+* Authentication Events
+* Security Events
+* Validation Results
+* Operational Diagnostics
 
 ---
 
-Description:
+# Revocation Handling
 
-Authorization response replay.
+Scenario:
 
----
-
-Mitigation:
-
-* State parameter validation
-* One-time authorization flow
+User revokes DevGrid authorization through GitHub.
 
 ---
 
-## Threat 5
+Expected Behavior
 
-Session Abuse
+Authentication becomes invalid.
 
-Risk:
-
-MEDIUM
+User must reauthenticate.
 
 ---
 
-Description:
+Expected User Experience
 
-Stale or compromised session continues operating.
+Display:
 
----
+GitHub access has been revoked.
 
-Mitigation:
-
-* Session validation
-* Expiration handling
-* Revocation handling
+Please sign in again.
 
 ---
 
-## Threat 6
+# Expiration Handling
 
-Brute Force Abuse
+Scenario:
 
-Risk:
+Authentication becomes invalid.
 
-LOW
+Examples:
 
----
-
-Description:
-
-Repeated authentication attempts.
+* Token Expiration
+* Revocation
+* Invalid Authentication State
 
 ---
 
-Mitigation:
+Expected Behavior
 
-* Rate limiting
-* Request monitoring
+Authentication is rejected.
 
----
-
-## Threat 7
-
-GitHub Access Revocation
-
-Risk:
-
-MEDIUM
+User is prompted to authenticate again.
 
 ---
 
-Description:
+# Abuse Prevention
 
-User revokes DevGrid authorization.
+Authentication Service should support:
 
----
-
-Mitigation:
-
-* Session validation
-* Reauthentication workflow
-* Revocation detection
+* Request Validation
+* Input Validation
+* Rate Limiting
+* Error Sanitization
 
 ---
 
-# Security Controls
+Authentication Service should not expose:
+
+* Internal Architecture
+* Stack Traces
+* Secret Values
 
 ---
 
-## Control 1
+# Security Responsibilities
 
-HTTPS Enforcement
+Authentication Service Owns:
 
-All communication must use HTTPS.
-
----
-
-## Control 2
-
-Secret Isolation
-
-OAuth Client Secret remains inside authentication service.
+* OAuth Security
+* Secret Protection
+* Authentication Validation
+* Authentication Lifecycle
 
 ---
 
-## Control 3
+DevGrid Extension Owns:
 
-Least Privilege
-
-Request only the minimum GitHub permissions required by DevGrid.
-
----
-
-## Control 4
-
-Input Validation
-
-All requests must be validated.
-
----
-
-## Control 5
-
-Session Validation
-
-Authentication state verified regularly.
-
----
-
-## Control 6
-
-Rate Limiting
-
-Protect authentication endpoints from abuse.
-
----
-
-## Control 7
-
-Error Sanitization
-
-Do not expose:
-
-* Secrets
-* Internal stack traces
-* Sensitive implementation details
-
----
-
-# Security Requirements
-
-The authentication service must:
-
-* Validate requests
-* Validate sessions
-* Validate authorization responses
-* Handle revocation
-* Handle expiration
-
----
-
-The extension must:
-
-* Store minimal authentication metadata
-* Protect OAuth access tokens
-* Never store OAuth client secrets
-* Reauthenticate when required
+* Repository Operations
+* Repository Configuration
+* Product Functionality
+* User Workflows
 
 ---
 
 # Explicitly Forbidden
 
-Do not:
+The authentication service must not become:
 
-* Store OAuth Client Secret in extension
-* Commit secrets to source control
-* Log secrets
-* Expose credentials through APIs
-* Expose internal implementation details
-* Disable validation for convenience
-
----
-
-# Security Monitoring
-
-Monitor:
-
-* Authentication failures
-* Validation failures
-* Rate limit events
-* Unexpected errors
+* Repository Proxy
+* Repository Synchronization Engine
+* Product Backend
+* Analytics Platform
+* User Management Platform
 
 ---
 
-Monitoring must not collect:
+# Security Success Criteria
 
-* Repository contents
-* User submissions
-* Personal analytics
+A secure authentication service:
 
----
+* Protects OAuth secrets
+* Protects user trust
+* Remains easy to audit
+* Remains easy to maintain
+* Remains independently deployable
+* Maintains clear architectural boundaries
 
-# Residual Risk Assessment
+Users should be able to:
 
-Current Risk:
+Install Extension
+↓
+Sign In With GitHub
+↓
+Select Repository
+↓
+Use DevGrid
 
-LOW
+without needing to understand the underlying security model.
 
----
-
-Critical Risks:
-
-0
-
----
-
-Architecture Blockers:
-
-0
-
----
-
-# Definition Of Success
-
-A successful security model:
-
-* Protects OAuth credentials
-* Protects authentication workflows
-* Maintains least privilege
-* Preserves trust
-* Remains understandable
-* Remains auditable
-
-Users should trust DevGrid without needing to understand OAuth internals.
-
-Security should be strong without making onboarding complicated.
+The best security model is effective, predictable, and invisible to the user.

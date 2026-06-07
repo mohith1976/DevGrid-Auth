@@ -29,6 +29,171 @@ The authentication service exists to eliminate Personal Access Tokens while prov
 
 # Governance Rules
 
+# Engineering Standards
+
+These standards apply to all DevGrid repositories.
+
+## Core Principle
+
+Write software for the current stage of the product.
+
+Avoid both:
+
+* Under-engineering
+* Premature over-engineering
+
+Architecture must be justified by actual requirements.
+
+Do not introduce abstractions, layers, services, interfaces, folders, or patterns solely because they are common in enterprise software.
+
+Every abstraction must have a clear reason to exist.
+
+---
+
+## Simplicity First
+
+Prefer:
+
+* Simple code
+* Clear code
+* Readable code
+* Maintainable code
+
+Over:
+
+* Clever code
+* Excessively generic code
+* Premature abstraction
+* Pattern-driven development
+
+If two solutions solve the same problem:
+
+Choose the simpler one.
+
+---
+
+## Production Readiness
+
+Production-ready does NOT mean:
+
+* More files
+* More folders
+* More interfaces
+* More abstractions
+
+Production-ready means:
+
+* Correctness
+* Reliability
+* Security
+* Maintainability
+* Observability
+* Testability
+
+---
+
+## Abstraction Rule
+
+Before creating:
+
+* Interface
+* Service
+* Factory
+* Strategy
+* Provider
+* Module
+* Layer
+
+Ask:
+
+1. What problem does this abstraction solve?
+2. Is the problem real today?
+3. Will removing this abstraction make the code worse?
+
+If the answer is no:
+
+Do not create the abstraction.
+
+---
+
+## File Organization
+
+Prefer cohesive modules.
+
+Avoid extreme fragmentation.
+
+Bad:
+
+auth/
+├── user.ts
+├── token.ts
+├── state.ts
+├── result.ts
+
+where every file contains only a few lines.
+
+Also avoid:
+
+auth.ts
+
+containing thousands of unrelated lines.
+
+Aim for balanced organization.
+
+Files should be organized around responsibility, not dogma.
+
+---
+
+## Domain Layer Rules
+
+Domain layer exists to define business contracts.
+
+Domain layer should contain:
+
+* Types
+* Interfaces
+* Enums
+* Business contracts
+
+Domain layer should not contain:
+
+* Infrastructure concerns
+* Framework concerns
+* HTTP concerns
+* Database concerns
+
+Keep domain models small and focused.
+
+---
+
+## Future-Proofing Rule
+
+Design for likely future requirements.
+
+Do not design for imaginary future requirements.
+
+If a requirement does not exist:
+
+Do not build for it.
+
+Leave room for it.
+
+---
+
+## Review Rule
+
+Before approving implementation:
+
+1. Verify correctness
+2. Verify maintainability
+3. Verify simplicity
+4. Verify consistency with repository standards
+
+Do not approve complexity simply because it is technically valid.
+
+The simplest correct solution is preferred.
+
+
 ## Authority Hierarchy
 
 The source of truth for DevGrid is:
@@ -194,8 +359,11 @@ This repository owns:
 * OAuth configuration
 * OAuth communication
 * Authorization flow
-* Token exchange
-* Session validation
+* OAuth state validation
+* Authorization code exchange
+* Authenticated user retrieval
+
+Repository operations remain outside this repository.
 
 ---
 
@@ -203,11 +371,13 @@ This repository owns:
 
 * Login
 * Logout
-* Session validation
+* Authentication validation
 * Authorization callbacks
 * Authentication state verification
 
----
+The authentication service is responsible for OAuth authentication workflows.
+
+The authentication service is not responsible for product workflows.
 
 ## Credential Management
 
@@ -318,6 +488,8 @@ must never exist in this repository.
 
 Incorrect:
 
+Repository Operations
+
 Extension
 ↓
 Auth Service
@@ -326,9 +498,19 @@ GitHub
 
 Correct:
 
+Repository Operations
+
 Extension
 ↓
 GitHub
+
+Authentication Operations
+
+Extension
+↓
+Auth Service
+↓
+GitHub OAuth
 
 The authentication service must never become a repository proxy.
 
@@ -351,6 +533,44 @@ Secrets must never exist inside:
 Keep the service as small as possible.
 
 Complexity requires justification.
+
+## Principle 5A - Build For Current Complexity
+
+Implement the complexity that exists today.
+
+Do not introduce abstractions for hypothetical future requirements.
+
+Avoid:
+
+* Premature abstraction
+* Premature scalability
+* Premature infrastructure
+
+Leave room for future growth without implementing future systems.
+
+The simplest correct solution is preferred.
+
+## Principle 5B - Engineering Over Pattern Collection
+
+Code quality is measured by:
+
+* Correctness
+* Reliability
+* Maintainability
+* Security
+
+Code quality is not measured by:
+
+* Number of layers
+* Number of interfaces
+* Number of files
+* Number of abstractions
+
+Patterns exist to solve problems.
+
+Do not introduce patterns that do not solve a real problem.
+
+
 
 ---
 
@@ -377,22 +597,42 @@ Communication occurs only through HTTP APIs.
 src/
 
 ├── routes/
-│
 ├── services/
-│   ├── auth/
-│   ├── oauth/
-│   └── token/
-│
 ├── middleware/
-│
 ├── domain/
-│
 ├── config/
-│
 └── utils/
 
----
+This structure represents architectural responsibilities.
 
+Folder structure should remain pragmatic.
+
+Do not introduce additional layers without justification.
+
+Do not create abstractions solely to mirror enterprise architectures.
+---
+# Implementation Philosophy
+
+Implementation should prioritize:
+
+1. Correctness
+2. Simplicity
+3. Maintainability
+4. Security
+
+When multiple valid solutions exist:
+
+Choose the simplest solution that satisfies requirements.
+
+Do not create architecture for architecture's sake.
+
+Do not create abstractions before they become necessary.
+
+Production-ready software is not measured by complexity.
+
+Production-ready software is measured by reliability.
+
+---
 # Definition Of Success
 
 A successful authentication service:

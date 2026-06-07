@@ -1,6 +1,6 @@
 # DevGrid OAuth Authentication Flow
 
-Version: 2.0
+Version: 2.1
 
 Status: DESIGN APPROVED
 
@@ -16,9 +16,9 @@ This document defines the complete authentication flow between:
 * DevGrid Authentication Service
 * GitHub OAuth
 
-No implementation decisions should contradict this document.
+This document is the source of truth for authentication behavior.
 
-This document serves as the source of truth for authentication behavior.
+No implementation should contradict the flow defined here.
 
 ---
 
@@ -29,9 +29,21 @@ The authentication system must:
 * Eliminate Personal Access Tokens
 * Minimize onboarding friction
 * Preserve user trust
-* Remain understandable
 * Remain secure
+* Remain understandable
 * Provide a familiar Sign In With GitHub experience
+
+Users should be able to:
+
+Install Extension
+↓
+Sign In With GitHub
+↓
+Select Repository
+↓
+Use DevGrid
+
+without manually generating credentials.
 
 ---
 
@@ -45,9 +57,10 @@ Responsibilities:
 
 * Authentication initiation
 * Authentication state management
-* Repository selection
 * User interaction
+* Repository selection
 * Repository synchronization
+* GitHub repository operations
 
 ---
 
@@ -59,9 +72,11 @@ Responsibilities:
 
 * OAuth authorization flow
 * OAuth callback handling
-* Token exchange
+* OAuth code exchange
 * Secret protection
-* Session validation
+* Authentication validation
+
+The authentication service exists solely to support authentication.
 
 ---
 
@@ -73,15 +88,15 @@ Responsibilities:
 
 * User authentication
 * User authorization
-* Access token issuance
+* OAuth access token issuance
 
 ---
 
-# High-Level Flow
+# High-Level Authentication Flow
 
 User
 ↓
-Extension
+DevGrid Extension
 ↓
 Authentication Service
 ↓
@@ -89,7 +104,7 @@ GitHub OAuth
 ↓
 Authentication Service
 ↓
-Extension
+DevGrid Extension
 ↓
 Authenticated
 
@@ -127,7 +142,7 @@ Sign In With GitHub
 
 ## Step 4
 
-Extension requests authentication initiation from:
+Extension initiates authentication through:
 
 auth.digitaldevgrid.tech
 
@@ -137,7 +152,7 @@ auth.digitaldevgrid.tech
 
 Authentication Service generates:
 
-* State Parameter
+* OAuth State Parameter
 * Authorization Request
 
 and redirects user to GitHub OAuth.
@@ -152,8 +167,8 @@ Authorize DevGrid
 
 User reviews:
 
-* Application name
-* Requested permissions
+* Application Name
+* Requested Permissions
 
 ---
 
@@ -180,8 +195,8 @@ with:
 
 Authentication Service validates:
 
-* State
-* Request integrity
+* OAuth State
+* Request Integrity
 
 ---
 
@@ -199,6 +214,14 @@ OAuth Access Token
 
 ## Step 11
 
+Authentication Service retrieves:
+
+Authenticated GitHub User
+
+---
+
+## Step 12
+
 Authentication Service returns:
 
 Authentication Result
@@ -208,13 +231,13 @@ to DevGrid Extension.
 Returned data may include:
 
 * OAuth Access Token
-* GitHub Username
 * GitHub User ID
+* GitHub Username
 * Authentication Metadata
 
 ---
 
-## Step 12
+## Step 13
 
 Extension stores:
 
@@ -228,7 +251,7 @@ chrome.storage.local
 
 ---
 
-## Step 13
+## Step 14
 
 Extension enters:
 
@@ -239,6 +262,8 @@ Authenticated State
 # Repository Selection Flow
 
 Authentication and repository selection are separate concerns.
+
+Authentication success does not automatically select a repository.
 
 ---
 
@@ -274,21 +299,28 @@ Active DevGrid Repository
 
 ## Step 5
 
-Repository configuration stored locally.
+Repository configuration is stored locally.
 
 ---
 
-# Repository Synchronization Flow
+# Repository Operations Flow
 
-Repository synchronization does not involve the authentication service.
-
----
+Repository operations are not handled by the authentication service.
 
 Flow:
 
-Extension
+DevGrid Extension
 ↓
 GitHub
+
+---
+
+Examples:
+
+* Repository Discovery
+* Commit Creation
+* File Updates
+* Repository Synchronization
 
 ---
 
@@ -296,9 +328,9 @@ The authentication service must never proxy repository operations.
 
 ---
 
-# Session Validation Flow
+# Authentication Validation Flow
 
-Session validation occurs during:
+Authentication validation may occur during:
 
 * Extension startup
 * Popup open
@@ -311,23 +343,33 @@ Session validation occurs during:
 
 Extension
 ↓
-Authentication Service
+Authentication Validation
 ↓
-Session Check
-↓
-Valid / Invalid
+Authenticated
+
+or
+
+Unauthenticated
 
 ---
 
-## Valid
+Authentication validation may use:
+
+* Stored authentication metadata
+* Authentication service validation
+* GitHub authorization status
+
+---
+
+## Authenticated
 
 Continue normally.
 
 ---
 
-## Invalid
+## Unauthenticated
 
-Require re-authentication.
+Require user sign-in.
 
 ---
 
@@ -353,7 +395,7 @@ Extension removes:
 
 ## Step 3
 
-Authentication Service invalidates session.
+Authentication Service invalidates active authentication state if applicable.
 
 ---
 
@@ -365,23 +407,23 @@ Unauthenticated State
 
 ---
 
-# Revocation Flow
+# Authorization Revocation Flow
 
 Scenario:
 
-User revokes DevGrid access through GitHub.
+User revokes DevGrid authorization through GitHub.
 
 ---
 
 ## Detection
 
-OAuth validation fails.
+GitHub authorization validation fails.
 
 ---
 
 ## Result
 
-Extension marks session invalid.
+Extension marks authentication invalid.
 
 ---
 
@@ -395,11 +437,17 @@ Please sign in again.
 
 ---
 
-# Token Expiration Flow
+# Authentication Expiration Flow
 
 Scenario:
 
-OAuth token expires.
+Authentication becomes invalid.
+
+Examples:
+
+* OAuth token expiration
+* Authorization revocation
+* Invalid authentication state
 
 ---
 
@@ -409,13 +457,13 @@ GitHub API request fails.
 
 or
 
-Session validation fails.
+Authentication validation fails.
 
 ---
 
 ## Result
 
-Require re-authentication.
+Require user sign-in.
 
 ---
 
@@ -423,7 +471,7 @@ Require re-authentication.
 
 Display:
 
-Your session has expired.
+Authentication expired.
 
 Please sign in again.
 
@@ -477,9 +525,9 @@ Please check your connection.
 
 Extension ↔ Authentication Service
 
-Communication:
+Requirements:
 
-HTTPS only
+* HTTPS Only
 
 ---
 
@@ -487,9 +535,10 @@ HTTPS only
 
 Authentication Service ↔ GitHub OAuth
 
-Communication:
+Requirements:
 
-HTTPS only
+* HTTPS Only
+* Verified GitHub Responses
 
 ---
 
@@ -497,16 +546,16 @@ HTTPS only
 
 Extension ↔ GitHub
 
-Communication:
+Requirements:
 
-HTTPS only
+* HTTPS Only
 
-Used for:
+Used For:
 
-* Repository discovery
-* Repository synchronization
-* Commit creation
-* File updates
+* Repository Discovery
+* Repository Synchronization
+* Commit Creation
+* File Updates
 
 ---
 
@@ -515,14 +564,14 @@ Used for:
 Authentication Service must never expose:
 
 * OAuth Client Secret
-* Internal credentials
+* Internal Credentials
 
 ---
 
 Extension must never store:
 
 * OAuth Client Secret
-* Authentication Service credentials
+* Authentication Service Secrets
 
 ---
 
@@ -548,19 +597,25 @@ Handles Product Functionality
 
 ---
 
-Repository Synchronization:
+Repository Operations:
 
 Extension
 ↓
 GitHub
 
-NOT
+---
+
+Authentication Operations:
 
 Extension
 ↓
 Authentication Service
 ↓
-GitHub
+GitHub OAuth
+
+---
+
+The authentication service must never become a GitHub repository proxy.
 
 ---
 
@@ -576,6 +631,6 @@ Select Repository
 ↓
 Use DevGrid
 
-without manually generating Personal Access Tokens.
+with minimal onboarding friction.
 
-The authentication experience should feel familiar, simple, and predictable.
+The authentication experience should feel simple, familiar, secure, and predictable.

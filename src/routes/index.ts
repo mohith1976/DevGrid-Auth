@@ -5,3 +5,4 @@
  */
 
 export { HealthController } from './health.controller.js';
+export { AuthController } from './auth.controller.js';
